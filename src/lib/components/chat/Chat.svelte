@@ -88,6 +88,7 @@
 	import MessageInput from '$lib/components/chat/MessageInput.svelte';
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Navbar from '$lib/components/chat/Navbar.svelte';
+	import ChatToolbar from '$lib/components/chat/ChatToolbar.svelte';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
 	import Placeholder from './Placeholder.svelte';
@@ -158,6 +159,21 @@
 	let chatFiles = [];
 	let files = [];
 	let params = {};
+
+	// Chat Toolbar
+	let toolbarTitle = '제 10장, 벡터 그리고 어쩌구';
+	let toolbarSubtitle = '그런 내용이 있다.';
+	let toolbarProficiencyLevel = 'intermediate';
+	let toolbarResponseStyle = 'question_guidance';
+
+	// Update toolbar data when chat changes
+	$: if (chat && !$temporaryChatEnabled) {
+		// Chat object에서 toolbar 데이터를 읽어옴 (현재는 더미 값 사용)
+		toolbarTitle = chat.title || '제 10장, 벡터 그리고 어쩌구';
+		toolbarSubtitle = chat.subtitle || '그런 내용이 있다.';
+		toolbarProficiencyLevel = chat.proficiency_level || 'intermediate';
+		toolbarResponseStyle = chat.response_style || 'question_guidance';
+	}
 
 	$: if (chatIdProp) {
 		navigateHandler();
@@ -1932,6 +1948,8 @@
 				params: {
 					...$settings?.params,
 					...params,
+					// proficiency_level: toolbarProficiencyLevel,
+					// response_style: toolbarResponseStyle,
 					stop:
 						(params?.stop ?? $settings?.params?.stop ?? undefined)
 							? (params?.stop.split(',').map((token) => token.trim()) ?? $settings.params.stop).map(
@@ -1982,7 +2000,7 @@
 			},
 			`${WEBUI_BASE_URL}/api`
 		).catch(async (error) => {
-			console.log(error);
+			console.error('Error loading chat:', error);
 
 			let errorMessage = error;
 			if (error?.error?.message) {
@@ -2009,9 +2027,86 @@
 		});
 
 		if (res) {
-			if (res.error) {
+			// Check if res is a Response object (stream mode)
+			if (res instanceof Response) {
+				if (res.ok) {
+					try {
+						const reader = res.body
+							.pipeThrough(new TextDecoderStream())
+							.getReader();
+
+						let buffer = '';
+
+						while (true) {
+							const { value, done } = await reader.read();
+							if (done) {
+								// Process any remaining data in buffer
+								if (buffer.trim()) {
+									const lines = buffer.split('\n');
+									for (const line of lines) {
+										if (line.trim() && line.trim() !== 'data: [DONE]') {
+											try {
+												const data = JSON.parse(line.replace(/^data: /, ''));
+												if (data?.choices?.[0]?.delta?.content) {
+													responseMessage.content = (responseMessage.content ?? '') + data.choices[0].delta.content;
+												}
+											} catch (e) {
+												console.error('Error parsing stream line:', e);
+											}
+										}
+									}
+								}
+								break;
+							}
+
+							buffer += value;
+							const lines = buffer.split('\n');
+							buffer = lines.pop() ?? '';
+
+							for (const line of lines) {
+								if (line.trim() && line.trim() !== 'data: [DONE]') {
+									try {
+										const data = JSON.parse(line.replace(/^data: /, ''));
+										if (data?.choices?.[0]?.delta?.content) {
+											responseMessage.content = (responseMessage.content ?? '') + data.choices[0].delta.content;
+											history.messages[responseMessageId] = responseMessage;
+											await tick();
+										}
+									} catch (e) {
+										console.error('Error parsing stream line:', e);
+									}
+								}
+							}
+						}
+
+						responseMessage.done = true;
+						history.messages[responseMessageId] = responseMessage;
+					} catch (error) {
+						console.error('Error processing stream:', error);
+						responseMessage.error = {
+							content: error
+						};
+						responseMessage.done = true;
+						history.messages[responseMessageId] = responseMessage;
+					}
+				} else {
+					try {
+						const error = await res.json();
+						await handleOpenAIError(error, responseMessage);
+					} catch (e) {
+						console.error('Error reading error response:', e);
+						responseMessage.error = {
+							content: `HTTP Error: ${res.status}`
+						};
+						responseMessage.done = true;
+						history.messages[responseMessageId] = responseMessage;
+					}
+				}
+			} else if (res.error) {
+				// Non-stream mode error response
 				await handleOpenAIError(res.error, responseMessage);
 			} else {
+				// Non-stream mode success response
 				if (taskIds) {
 					taskIds.push(res.task_id);
 				} else {
@@ -2404,7 +2499,18 @@
 
 			<PaneGroup direction="horizontal" class="w-full h-full">
 				<Pane defaultSize={50} minSize={30} class="h-full flex relative max-w-full flex-col">
-					<Navbar
+					<!-- chat toolbar - only show for existing chats, not for new chats -->
+					{#if !$temporaryChatEnabled && chat}
+						<ChatToolbar
+							title={toolbarTitle}
+							subtitle={toolbarSubtitle}
+							bind:proficiencyLevel={toolbarProficiencyLevel}
+							bind:responseStyle={toolbarResponseStyle}
+						/>
+					{/if}
+					<!-- chat toolbar end -->
+
+					<!-- <Navbar
 						bind:this={navbarElement}
 						chat={{
 							id: $chatId,
@@ -2460,7 +2566,7 @@
 								toast.error($i18n.t('Failed to save conversation'));
 							}
 						}}
-					/>
+					/> -->
 
 					<div class="flex flex-col flex-auto z-10 w-full @container overflow-auto">
 						{#if ($settings?.landingPageMode === 'chat' && !$selectedFolder) || createMessagesList(history, history.currentId).length > 0}
