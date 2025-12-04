@@ -361,7 +361,7 @@ export const chatCompletion = async (
 
 export const generateOpenAIChatCompletion = async (
 	token: string = '',
-	body: any = {},
+	body: object,
 	url: string = `${WEBUI_BASE_URL}/api`
 ) => {
 	let error = null;
@@ -377,11 +377,6 @@ export const generateOpenAIChatCompletion = async (
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
-			// If stream is enabled, return the Response object as-is
-			// Otherwise, parse as JSON
-			if (body?.stream) {
-				return res;
-			}
 			return res.json();
 		})
 		.catch((err) => {

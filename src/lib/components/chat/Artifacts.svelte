@@ -99,7 +99,7 @@
 
 		artifactContents.subscribe((value) => {
 			contents = value;
-			// console.log('Artifact contents updated:', contents);
+			console.log('Artifact contents updated:', contents);
 
 			if (contents.length === 0) {
 				showControls.set(false);

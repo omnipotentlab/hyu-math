@@ -122,8 +122,8 @@
 
 	// Bubble and Floating menus are currently fixed to v2 due to styling issues in v3
 	// TODO: Update to v3 when styling issues are resolved
-	// import BubbleMenu from '@tiptap/extension-bubble-menu';
-	// import FloatingMenu from '@tiptap/extension-floating-menu';
+	import BubbleMenu from '@tiptap/extension-bubble-menu';
+	import FloatingMenu from '@tiptap/extension-floating-menu';
 
 	import { TableKit } from '@tiptap/extension-table';
 	import { ListKit } from '@tiptap/extension-list';
@@ -745,26 +745,26 @@
 					: []),
 				...(richText && showFormattingToolbar
 					? [
-							// BubbleMenu.configure({
-							// 	element: bubbleMenuElement,
-							// 	tippyOptions: {
-							// 		duration: 100,
-							// 		arrow: false,
-							// 		placement: 'top',
-							// 		theme: 'transparent',
-							// 		offset: [0, 2]
-							// 	}
-							// }),
-							// FloatingMenu.configure({
-							// 	element: floatingMenuElement,
-							// 	tippyOptions: {
-							// 		duration: 100,
-							// 		arrow: false,
-							// 		placement: floatingMenuPlacement,
-							// 		theme: 'transparent',
-							// 		offset: [-12, 4]
-							// 	}
-							// })
+							BubbleMenu.configure({
+								element: bubbleMenuElement,
+								tippyOptions: {
+									duration: 100,
+									arrow: false,
+									placement: 'top',
+									theme: 'transparent',
+									offset: [0, 2]
+								}
+							}),
+							FloatingMenu.configure({
+								element: floatingMenuElement,
+								tippyOptions: {
+									duration: 100,
+									arrow: false,
+									placement: floatingMenuPlacement,
+									theme: 'transparent',
+									offset: [-12, 4]
+								}
+							})
 						]
 					: []),
 				...(collaboration && provider ? [provider.getEditorExtension()] : [])
