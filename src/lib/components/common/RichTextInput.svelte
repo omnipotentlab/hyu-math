@@ -117,6 +117,7 @@
 	import { Editor, Extension, mergeAttributes } from '@tiptap/core';
 
 	import { AIAutocompletion } from './RichTextInput/AutoCompletion.js';
+	import { MathFormula } from './RichTextInput/MathFormula.js';
 
 	import StarterKit from '@tiptap/starter-kit';
 
@@ -684,11 +685,19 @@
 			element: element,
 			extensions: [
 				StarterKit.configure({
-					link: link
+					link: link,
+					...(richText ? {
+						codeBlock: false,  // Disable to use CodeBlockLowlight
+						bulletList: false, // Disable to use ListKit
+						orderedList: false, // Disable to use ListKit
+						listItem: false, // Disable to use ListKit
+						listKeymap: false // Disable to use ListKit's keymap
+					} : {})
 				}),
 				...(dragHandle ? [ListItemDragHandle] : []),
 				Placeholder.configure({ placeholder: () => _placeholder, showOnlyWhenEditable: false }),
 				SelectionDecoration,
+				MathFormula,
 
 				...(richText
 					? [
