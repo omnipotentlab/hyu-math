@@ -64,14 +64,14 @@
 
 	<slot name="content">
 		<DropdownMenu.Content
-			class="w-full {className}  rounded-2xl px-1 py-1  border border-gray-100  dark:border-gray-800 z-50 bg-white dark:bg-gray-850 dark:text-white shadow-lg text-sm"
+			class="w-full {className} flex flex-col items-start p-5 gap-2 bg-[rgba(113,122,143,0.3)] shadow-[4px_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[20px] rounded-[20px] rounded-bl-[4px] z-50 text-white text-xs border-0"
 			sideOffset={4}
 			side="top"
 			align="end"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
 			<DropdownMenu.Item
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+				class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 				on:click={async () => {
 					show = false;
 
@@ -83,14 +83,14 @@
 					}
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class=" self-center">
 					<Settings className="w-5 h-5" strokeWidth="1.5" />
 				</div>
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
 			</DropdownMenu.Item>
 
 			<DropdownMenu.Item
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+				class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 				on:click={async () => {
 					show = false;
 
@@ -103,7 +103,7 @@
 					}
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class=" self-center">
 					<ArchiveBox className="size-5" strokeWidth="1.5" />
 				</div>
 				<div class=" self-center truncate">{$i18n.t('Archived Chats')}</div>
@@ -113,7 +113,7 @@
 				<DropdownMenu.Item
 					as="a"
 					href="/playground"
-					class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition select-none"
+					class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition select-none text-xs leading-[18px]"
 					on:click={async () => {
 						show = false;
 						if ($mobile) {
@@ -122,7 +122,7 @@
 						}
 					}}
 				>
-					<div class=" self-center mr-3">
+					<div class=" self-center">
 						<Code className="size-5" strokeWidth="1.5" />
 					</div>
 					<div class=" self-center truncate">{$i18n.t('Playground')}</div>
@@ -130,7 +130,7 @@
 				<DropdownMenu.Item
 					as="a"
 					href="/admin"
-					class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition select-none"
+					class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition select-none text-xs leading-[18px]"
 					on:click={async () => {
 						show = false;
 						if ($mobile) {
@@ -139,7 +139,7 @@
 						}
 					}}
 				>
-					<div class=" self-center mr-3">
+					<div class=" self-center">
 						<UserGroup className="w-5 h-5" strokeWidth="1.5" />
 					</div>
 					<div class=" self-center truncate">{$i18n.t('Admin Panel')}</div>
@@ -147,7 +147,7 @@
 			{/if}
 
 			{#if help}
-				<hr class=" border-gray-50 dark:border-gray-800 my-1 p-0" />
+				<hr class=" border-white/20 my-1 p-0" />
 
 				<!-- {$i18n.t('Help')} -->
 
@@ -155,7 +155,7 @@
 					<DropdownMenu.Item
 						as="a"
 						target="_blank"
-						class="flex gap-3 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition"
+						class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition select-none cursor-pointer text-xs leading-[18px]"
 						id="chat-share-button"
 						on:click={() => {
 							show = false;
@@ -170,7 +170,7 @@
 					<DropdownMenu.Item
 						as="a"
 						target="_blank"
-						class="flex gap-3 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition"
+						class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition select-none cursor-pointer text-xs leading-[18px]"
 						id="chat-share-button"
 						on:click={() => {
 							show = false;
@@ -183,7 +183,7 @@
 				{/if}
 
 				<DropdownMenu.Item
-					class="flex gap-3 items-center py-1.5 px-3 text-sm select-none w-full  hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer"
+					class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition select-none cursor-pointer text-xs leading-[18px]"
 					id="chat-share-button"
 					on:click={async () => {
 						show = false;
@@ -200,10 +200,10 @@
 				</DropdownMenu.Item>
 			{/if}
 
-			<hr class=" border-gray-50 dark:border-gray-800 my-1 p-0" />
+			<hr class=" border-white/20 my-1 p-0" />
 
 			<DropdownMenu.Item
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+				class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition text-xs leading-[18px]"
 				on:click={async () => {
 					const res = await userSignOut();
 					user.set(null);
@@ -213,7 +213,7 @@
 					show = false;
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class=" self-center">
 					<SignOut className="w-5 h-5" strokeWidth="1.5" />
 				</div>
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
@@ -221,7 +221,7 @@
 
 			{#if usage}
 				{#if usage?.user_ids?.length > 0}
-					<hr class=" border-gray-50 dark:border-gray-800 my-1 p-0" />
+					<hr class=" border-white/20 my-1 p-0" />
 
 					<Tooltip
 						content={usage?.model_ids && usage?.model_ids.length > 0
