@@ -37,6 +37,7 @@
 		getPinnedChatList,
 		toggleChatPinnedStatusById,
 		getChatById,
+		updateChatById,
 		updateChatFolderIdById,
 		importChats
 	} from '$lib/apis/chats';
@@ -51,6 +52,7 @@
 	import Folder from '../common/Folder.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Folders from './Sidebar/Folders.svelte';
+	import HYULogo36 from '../icons/HYULogo36.svelte';
 	import { getChannels, createNewChannel } from '$lib/apis/channels';
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
@@ -63,6 +65,11 @@
 	import Note from '../icons/Note.svelte';
 	import { slide } from 'svelte/transition';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
+	import Bookmark from '../icons/Bookmark.svelte';
+	import BookmarkSolid from '../icons/BookmarkSolid.svelte';
+	import ChevronUp from '../icons/ChevronUp.svelte';
+	import ChevronDown from '../icons/ChevronDown.svelte';
+	import TextbookInfo from './Sidebar/TextbookInfo.svelte';
 
 	const BREAKPOINT = 768;
 
@@ -79,6 +86,22 @@
 	let allChatsLoaded = false;
 
 	let showCreateFolderModal = false;
+
+	// History section states
+	let showHistorySearch = false;
+	let historySearchQuery = '';
+	let showBookmarkedOnly = false;
+	let historyExpanded = true;
+
+	// Dummy bookmark data (chat ID -> bookmarked status)
+	let chatBookmarks = {};
+
+	// Textbook section states
+	let currentTextbookTitle = '';
+	let currentTextbookSubtitle = '';
+
+	// Tab states
+	let activeTab = 'textbook'; // 'textbook' or 'history'
 
 	let folders = {};
 	let folderRegistry = {};
@@ -467,6 +490,42 @@
 	};
 
 	const isWindows = /Windows/i.test(navigator.userAgent);
+
+	// Dummy bookmark toggle function
+	const toggleChatBookmark = (chatId) => {
+		chatBookmarks[chatId] = !chatBookmarks[chatId];
+		chatBookmarks = { ...chatBookmarks };
+	};
+
+	// Filter chats based on search and bookmark filter
+	$: filteredChats =
+		$chats?.filter((chat) => {
+			const matchesSearch = historySearchQuery
+				? chat.title?.toLowerCase().includes(historySearchQuery.toLowerCase())
+				: true;
+			const matchesBookmark = showBookmarkedOnly ? chatBookmarks[chat.id] : true;
+			return matchesSearch && matchesBookmark;
+		}) || [];
+
+	// Handle textbook subsection selection
+	const handleSubsectionSelect = async (event) => {
+		currentTextbookTitle = event.detail.title;
+		currentTextbookSubtitle = event.detail.subtitle;
+
+		// Update current chat with selected textbook section
+		if ($chatId) {
+			try {
+				await updateChatById(localStorage.token, $chatId, {
+					chapter: event.detail.title,
+					subtitle: event.detail.subtitle
+				});
+				console.log('Updated chat with subsection:', event.detail);
+			} catch (error) {
+				toast.error('Failed to update chat with textbook section');
+				console.error('Error updating chat:', error);
+			}
+		}
+	};
 </script>
 
 <ArchivedChatsModal
@@ -542,173 +601,67 @@
 
 {#if !$mobile && !$showSidebar}
 	<div
-		class=" pt-[7px] pb-2 px-1.5 flex flex-col justify-between text-black dark:text-white hover:bg-gray-50/30 dark:hover:bg-gray-950/30 h-full z-10 transition-all border-e-[0.5px] border-gray-50 dark:border-gray-850"
+		class="px-4 pt-4 pb-2 flex flex-col justify-between text-gray-50 h-full z-10 transition-all bg-gray-900/50"
 		id="sidebar"
 	>
-		<button
-			class="flex flex-col flex-1 {isWindows ? 'cursor-pointer' : 'cursor-[e-resize]'}"
-			on:click={async () => {
-				showSidebar.set(!$showSidebar);
-			}}
-		>
-			<div class="pb-1.5">
-				<Tooltip
-					content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
-					placement="right"
-				>
-					<button
-						class="flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group {isWindows
-							? 'cursor-pointer'
-							: 'cursor-[e-resize]'}"
-						aria-label={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
-					>
-						<div class=" self-center flex items-center justify-center size-9">
-							<img
-								src="{WEBUI_BASE_URL}/static/favicon.png"
-								class="sidebar-new-chat-icon size-6 rounded-full group-hover:hidden"
-								alt=""
-							/>
-
-							<Sidebar className="size-5 hidden group-hover:flex" />
-						</div>
-					</button>
-				</Tooltip>
-			</div>
-
-			<div class="-mt-[0.5px]">
-				<div class="">
-					<Tooltip content={$i18n.t('New Chat')} placement="right">
-						<a
-							class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-							href="/"
-							draggable="false"
-							on:click={async (e) => {
-								e.stopImmediatePropagation();
-								e.preventDefault();
-
-								goto('/');
-								newChatHandler();
-							}}
-							aria-label={$i18n.t('New Chat')}
-						>
-							<div class=" self-center flex items-center justify-center size-9">
-								<PencilSquare className="size-4.5" />
-							</div>
-						</a>
-					</Tooltip>
-				</div>
-
-				<div>
-					<Tooltip content={$i18n.t('Search')} placement="right">
-						<button
-							class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-							on:click={(e) => {
-								e.stopImmediatePropagation();
-								e.preventDefault();
-
-								showSearch.set(true);
-							}}
-							draggable="false"
-							aria-label={$i18n.t('Search')}
-						>
-							<div class=" self-center flex items-center justify-center size-9">
-								<Search className="size-4.5" />
-							</div>
-						</button>
-					</Tooltip>
-				</div>
-
-				{#if ($config?.features?.enable_notes ?? false) && ($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))}
-					<div class="">
-						<Tooltip content={$i18n.t('Notes')} placement="right">
-							<a
-								class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-								href="/notes"
-								on:click={async (e) => {
-									e.stopImmediatePropagation();
-									e.preventDefault();
-
-									goto('/notes');
-									itemClickHandler();
-								}}
-								draggable="false"
-								aria-label={$i18n.t('Notes')}
-							>
-								<div class=" self-center flex items-center justify-center size-9">
-									<Note className="size-4.5" />
-								</div>
-							</a>
-						</Tooltip>
-					</div>
-				{/if}
-
-				{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models || $user?.permissions?.workspace?.knowledge || $user?.permissions?.workspace?.prompts || $user?.permissions?.workspace?.tools}
-					<div class="">
-						<Tooltip content={$i18n.t('Workspace')} placement="right">
-							<a
-								class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-								href="/workspace"
-								on:click={async (e) => {
-									e.stopImmediatePropagation();
-									e.preventDefault();
-
-									goto('/workspace');
-									itemClickHandler();
-								}}
-								aria-label={$i18n.t('Workspace')}
-								draggable="false"
-							>
-								<div class=" self-center flex items-center justify-center size-9">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke-width="1.5"
-										stroke="currentColor"
-										class="size-4.5"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z"
-										/>
-									</svg>
-								</div>
-							</a>
-						</Tooltip>
-					</div>
-				{/if}
-			</div>
-		</button>
-
+		<!-- Top: HYU Logo -->
 		<div>
-			<div>
-				<div class=" py-0.5">
-					{#if $user !== undefined && $user !== null}
-						<UserMenu
-							role={$user?.role}
-							on:show={(e) => {
-								if (e.detail === 'archived-chat') {
-									showArchivedChats.set(true);
-								}
-							}}
-						>
-							<div
-								class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-							>
-								<div class=" self-center flex items-center justify-center size-9">
-									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
-										class=" size-6 object-cover rounded-full"
-										alt={$i18n.t('Open User Profile Menu')}
-										aria-label={$i18n.t('Open User Profile Menu')}
-									/>
-								</div>
-							</div>
-						</UserMenu>
-					{/if}
-				</div>
-			</div>
+			<a
+				class="flex items-center rounded-xl size-8.5 h-full justify-center hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition"
+				href="https://hanyang.ac.kr/"
+				draggable="false"
+				on:click={newChatHandler}
+			>
+				<HYULogo36 />
+			</a>
+		</div>
+
+		<!-- Bottom: Sidebar Toggle + User Profile -->
+		<div class="flex flex-col gap-2">
+			<!-- Sidebar Open Button -->
+			<Tooltip
+				content={$i18n.t('Open Sidebar')}
+				placement="right"
+			>
+				<button
+					class="flex rounded-xl size-8.5 justify-center items-center hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition {isWindows
+						? 'cursor-pointer'
+						: 'cursor-[e-resize]'}"
+					on:click={() => {
+						showSidebar.set(!$showSidebar);
+					}}
+					aria-label={$i18n.t('Open Sidebar')}
+				>
+					<div class="self-center p-1.5">
+						<Sidebar />
+					</div>
+				</button>
+			</Tooltip>
+
+			<!-- User Profile -->
+			{#if $user !== undefined && $user !== null}
+				<UserMenu
+					role={$user?.role}
+					on:show={(e) => {
+						if (e.detail === 'archived-chat') {
+							showArchivedChats.set(true);
+						}
+					}}
+				>
+					<div
+						class="cursor-pointer flex rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition group mb-[0.68rem]"
+					>
+						<div class="self-center flex items-center justify-center size-8.5">
+							<img
+								src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
+								class="size-6 object-cover rounded-full"
+								alt={$i18n.t('Open User Profile Menu')}
+								aria-label={$i18n.t('Open User Profile Menu')}
+							/>
+						</div>
+					</div>
+				</UserMenu>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -718,10 +671,10 @@
 		bind:this={navElement}
 		id="sidebar"
 		class="h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
-			? `${$mobile ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-50/70 dark:bg-gray-950/70'} z-50`
+			? `${$mobile ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-900/50'} z-50`
 			: ' bg-transparent z-0 '} {$isApp
 			? `ml-[4.5rem] md:ml-0 `
-			: ' transition-all duration-300 '} shrink-0 text-gray-900 dark:text-gray-200 text-sm fixed top-0 left-0 overflow-x-hidden
+			: ' transition-all duration-300 '} shrink-0 text-gray-50 text-sm fixed top-0 left-0 overflow-x-hidden
         "
 		transition:slide={{ duration: 250, axis: 'x' }}
 		data-state={$showSidebar}
@@ -732,31 +685,26 @@
 				: 'invisible'}"
 		>
 			<div
-				class="sidebar px-2 pt-2 pb-1.5 flex justify-between space-x-1 text-gray-600 dark:text-gray-400 sticky top-0 z-10 -mb-3"
+				class="sidebar px-4 pt-4 pb-1.5 flex justify-between space-x-1 text-gray-600 dark:text-gray-400 sticky top-0 z-10 -mb-3"
 			>
 				<a
 					class="flex items-center rounded-xl size-8.5 h-full justify-center hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition no-drag-region"
-					href="/"
+					href="https://hanyang.ac.kr/"
 					draggable="false"
 					on:click={newChatHandler}
 				>
-					<img
-						crossorigin="anonymous"
-						src="{WEBUI_BASE_URL}/static/favicon.png"
-						class="sidebar-new-chat-icon size-6 rounded-full"
-						alt=""
-					/>
+					<HYULogo36 />
 				</a>
 
 				<a href="/" class="flex flex-1 px-1.5" on:click={newChatHandler}>
 					<div
 						id="sidebar-webui-name"
-						class=" self-center font-medium text-gray-850 dark:text-white font-primary"
+						class=" self-center font-medium text-gray-50 dark:text-white font-primary"
 					>
-						{$WEBUI_NAME}
+						HYU AI Tutoring Assistant
 					</div>
 				</a>
-				<Tooltip
+				<!-- <Tooltip
 					content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
 					placement="bottom"
 				>
@@ -773,7 +721,7 @@
 							<Sidebar />
 						</div>
 					</button>
-				</Tooltip>
+				</Tooltip> -->
 
 				<div
 					class="{scrollTop > 0
@@ -792,7 +740,7 @@
 					}
 				}}
 			>
-				<div class="pb-1.5">
+				<!-- <div class="pb-1.5">
 					<div class="px-1.5 flex justify-center text-gray-800 dark:text-gray-200">
 						<a
 							id="sidebar-new-chat-button"
@@ -889,9 +837,9 @@
 							</a>
 						</div>
 					{/if}
-				</div>
+				</div> -->
 
-				{#if ($models ?? []).length > 0 && (($settings?.pinnedModels ?? []).length > 0 || $config?.default_pinned_models)}
+				<!-- {#if ($models ?? []).length > 0 && (($settings?.pinnedModels ?? []).length > 0 || $config?.default_pinned_models)}
 					<Folder
 						id="sidebar-models"
 						className="px-2 mt-0.5"
@@ -901,9 +849,9 @@
 					>
 						<PinnedModelList bind:selectedChatId {shiftKey} />
 					</Folder>
-				{/if}
+				{/if} -->
 
-				{#if $config?.features?.enable_channels && ($user?.role === 'admin' || $channels.length > 0)}
+				<!-- {#if $config?.features?.enable_channels && ($user?.role === 'admin' || $channels.length > 0)}
 					<Folder
 						id="sidebar-channels"
 						className="px-2 mt-0.5"
@@ -983,203 +931,208 @@
 							}}
 						/>
 					</Folder>
-				{/if}
+				{/if} -->
 
-				<Folder
-					id="sidebar-chats"
-					className="px-2 mt-0.5"
-					name={$i18n.t('Chats')}
-					chevron={false}
-					on:change={async (e) => {
-						selectedFolder.set(null);
-					}}
-					on:import={(e) => {
-						importChatHandler(e.detail);
-					}}
-					on:drop={async (e) => {
-						const { type, id, item } = e.detail;
+				<!-- Tab Navigation -->
+				<div class="px-4 mt-2 flex justify-center gap-2">
+					<!-- Textbook Tab -->
+					<Tooltip content="교재 정보" placement="bottom">
+						<button
+							class="p-2 rounded-lg transition {activeTab === 'textbook'
+								? 'bg-gray-700/70 text-white'
+								: 'text-gray-400 hover:bg-gray-800/30 hover:text-gray-200'}"
+							on:click={() => {
+								activeTab = 'textbook';
+							}}
+							aria-label="교재 정보"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke-width="1.5"
+								stroke="currentColor"
+								class="size-5"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+								/>
+							</svg>
+						</button>
+					</Tooltip>
 
-						if (type === 'chat') {
-							let chat = await getChatById(localStorage.token, id).catch((error) => {
-								return null;
-							});
-							if (!chat && item) {
-								chat = await importChats(localStorage.token, [
-									{
-										chat: item.chat,
-										meta: item?.meta ?? {},
-										pinned: false,
-										folder_id: null,
-										created_at: item?.created_at ?? null,
-										updated_at: item?.updated_at ?? null
-									}
-								]);
-							}
-
-							if (chat) {
-								console.log(chat);
-								if (chat.folder_id) {
-									const res = await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
-										(error) => {
-											toast.error(`${error}`);
-											return null;
-										}
-									);
-
-									folderRegistry[chat.folder_id]?.setFolderItems();
-								}
-
-								if (chat.pinned) {
-									const res = await toggleChatPinnedStatusById(localStorage.token, chat.id);
-								}
-
-								initChatList();
-							}
-						} else if (type === 'folder') {
-							if (folders[id].parent_id === null) {
-								return;
-							}
-
-							const res = await updateFolderParentIdById(localStorage.token, id, null).catch(
-								(error) => {
-									toast.error(`${error}`);
-									return null;
-								}
-							);
-
-							if (res) {
-								await initFolders();
-							}
-						}
-					}}
-				>
-					{#if $pinnedChats.length > 0}
-						<div class="mb-1">
-							<div class="flex flex-col space-y-1 rounded-xl">
-								<Folder
-									id="sidebar-pinned-chats"
-									buttonClassName=" text-gray-500"
-									on:import={(e) => {
-										importChatHandler(e.detail, true);
-									}}
-									on:drop={async (e) => {
-										const { type, id, item } = e.detail;
-
-										if (type === 'chat') {
-											let chat = await getChatById(localStorage.token, id).catch((error) => {
-												return null;
-											});
-											if (!chat && item) {
-												chat = await importChats(localStorage.token, [
-													{
-														chat: item.chat,
-														meta: item?.meta ?? {},
-														pinned: false,
-														folder_id: null,
-														created_at: item?.created_at ?? null,
-														updated_at: item?.updated_at ?? null
-													}
-												]);
-											}
-
-											if (chat) {
-												console.log(chat);
-												if (chat.folder_id) {
-													const res = await updateChatFolderIdById(
-														localStorage.token,
-														chat.id,
-														null
-													).catch((error) => {
-														toast.error(`${error}`);
-														return null;
-													});
-												}
-
-												if (!chat.pinned) {
-													const res = await toggleChatPinnedStatusById(localStorage.token, chat.id);
-												}
-
-												initChatList();
-											}
-										}
-									}}
-									name={$i18n.t('Pinned')}
+					<!-- History Tab -->
+					<Tooltip content="히스토리" placement="bottom">
+						<button
+							class="p-2 rounded-lg transition {activeTab === 'history'
+								? 'bg-gray-700/70 text-white'
+								: 'text-gray-400 hover:bg-gray-800/30 hover:text-gray-200'}"
+							on:click={() => {
+								activeTab = 'history';
+							}}
+							aria-label="히스토리"
+						>
+							<svg
+								width="20"
+								height="20"
+								viewBox="0 0 20 20"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg"
+								class="size-5"
+							>
+								<mask
+									id="mask0_191_446_tab"
+									style="mask-type:alpha"
+									maskUnits="userSpaceOnUse"
+									x="0"
+									y="0"
+									width="20"
+									height="20"
 								>
-									<div
-										class="ml-3 pl-1 mt-[1px] flex flex-col overflow-y-auto scrollbar-hidden border-s border-gray-100 dark:border-gray-900 text-gray-900 dark:text-gray-200"
+									<rect width="20" height="20" fill="#D9D9D9" />
+								</mask>
+								<g mask="url(#mask0_191_446_tab)">
+									<path
+										d="M5 15L3.27333 16.7267C3.03556 16.9644 2.76389 17.018 2.45833 16.8873C2.15278 16.7567 2 16.5235 2 16.1875V3.5C2 3.0875 2.14688 2.73438 2.44063 2.44063C2.73438 2.14688 3.0875 2 3.5 2H16.5C16.9125 2 17.2656 2.14688 17.5594 2.44063C17.8531 2.73438 18 3.0875 18 3.5V13.5C18 13.9125 17.8531 14.2656 17.5594 14.5594C17.2656 14.8531 16.9125 15 16.5 15H5ZM4.375 13.5H16.5V3.5H3.5V14.375L4.375 13.5ZM5.75 12H11.25C11.4625 12 11.6406 11.9285 11.7844 11.7856C11.9281 11.6427 12 11.4656 12 11.2544C12 11.0431 11.9281 10.8646 11.7844 10.7188C11.6406 10.5729 11.4625 10.5 11.25 10.5H5.75C5.5375 10.5 5.35938 10.5715 5.21563 10.7144C5.07188 10.8573 5 11.0344 5 11.2456C5 11.4569 5.07188 11.6354 5.21563 11.7812C5.35938 11.9271 5.5375 12 5.75 12ZM5.75 9.25H14.25C14.4625 9.25 14.6406 9.17854 14.7844 9.03563C14.9281 8.89271 15 8.71563 15 8.50438C15 8.29313 14.9281 8.11458 14.7844 7.96875C14.6406 7.82292 14.4625 7.75 14.25 7.75H5.75C5.5375 7.75 5.35938 7.82146 5.21563 7.96437C5.07188 8.10729 5 8.28437 5 8.49562C5 8.70687 5.07188 8.88542 5.21563 9.03125C5.35938 9.17708 5.5375 9.25 5.75 9.25ZM5.75 6.5H14.25C14.4625 6.5 14.6406 6.42854 14.7844 6.28563C14.9281 6.14271 15 5.96563 15 5.75438C15 5.54313 14.9281 5.36458 14.7844 5.21875C14.6406 5.07292 14.4625 5 14.25 5H5.75C5.5375 5 5.35938 5.07146 5.21563 5.21437C5.07188 5.35729 5 5.53437 5 5.74562C5 5.95687 5.07188 6.13542 5.21563 6.28125C5.35938 6.42708 5.5375 6.5 5.75 6.5Z"
+										fill="currentColor"
+									/>
+								</g>
+							</svg>
+						</button>
+					</Tooltip>
+				</div>
+
+				<!-- Tab Content -->
+				{#if activeTab === 'textbook'}
+					<!-- Textbook Info Section -->
+					<TextbookInfo on:subsection-select={handleSubsectionSelect} />
+				{:else}
+					<!-- History Section -->
+					<div class="px-2 mt-0.5">
+						<!-- History Toolbar -->
+						<div class="flex items-center justify-between py-2 px-2 rounded-xl">
+						<div class="flex items-center gap-2">
+							<div class="text-gray-50 dark:text-gray-400">
+								<svg
+									width="20"
+									height="20"
+									viewBox="0 0 20 20"
+									fill="none"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<mask
+										id="mask0_191_446"
+										style="mask-type:alpha"
+										maskUnits="userSpaceOnUse"
+										x="0"
+										y="0"
+										width="20"
+										height="20"
 									>
-										{#each $pinnedChats as chat, idx (`pinned-chat-${chat?.id ?? idx}`)}
-											<ChatItem
-												className=""
-												id={chat.id}
-												title={chat.title}
-												{shiftKey}
-												selected={selectedChatId === chat.id}
-												on:select={() => {
-													selectedChatId = chat.id;
-												}}
-												on:unselect={() => {
-													selectedChatId = null;
-												}}
-												on:change={async () => {
-													initChatList();
-												}}
-												on:tag={(e) => {
-													const { type, name } = e.detail;
-													tagEventHandler(type, name, chat.id);
-												}}
-											/>
-										{/each}
-									</div>
-								</Folder>
+										<rect width="20" height="20" fill="#D9D9D9" />
+									</mask>
+									<g mask="url(#mask0_191_446)">
+										<path
+											d="M5 15L3.27333 16.7267C3.03556 16.9644 2.76389 17.018 2.45833 16.8873C2.15278 16.7567 2 16.5235 2 16.1875V3.5C2 3.0875 2.14688 2.73438 2.44063 2.44063C2.73438 2.14688 3.0875 2 3.5 2H16.5C16.9125 2 17.2656 2.14688 17.5594 2.44063C17.8531 2.73438 18 3.0875 18 3.5V13.5C18 13.9125 17.8531 14.2656 17.5594 14.5594C17.2656 14.8531 16.9125 15 16.5 15H5ZM4.375 13.5H16.5V3.5H3.5V14.375L4.375 13.5ZM5.75 12H11.25C11.4625 12 11.6406 11.9285 11.7844 11.7856C11.9281 11.6427 12 11.4656 12 11.2544C12 11.0431 11.9281 10.8646 11.7844 10.7188C11.6406 10.5729 11.4625 10.5 11.25 10.5H5.75C5.5375 10.5 5.35938 10.5715 5.21563 10.7144C5.07188 10.8573 5 11.0344 5 11.2456C5 11.4569 5.07188 11.6354 5.21563 11.7812C5.35938 11.9271 5.5375 12 5.75 12ZM5.75 9.25H14.25C14.4625 9.25 14.6406 9.17854 14.7844 9.03563C14.9281 8.89271 15 8.71563 15 8.50438C15 8.29313 14.9281 8.11458 14.7844 7.96875C14.6406 7.82292 14.4625 7.75 14.25 7.75H5.75C5.5375 7.75 5.35938 7.82146 5.21563 7.96437C5.07188 8.10729 5 8.28437 5 8.49562C5 8.70687 5.07188 8.88542 5.21563 9.03125C5.35938 9.17708 5.5375 9.25 5.75 9.25ZM5.75 6.5H14.25C14.4625 6.5 14.6406 6.42854 14.7844 6.28563C14.9281 6.14271 15 5.96563 15 5.75438C15 5.54313 14.9281 5.36458 14.7844 5.21875C14.6406 5.07292 14.4625 5 14.25 5H5.75C5.5375 5 5.35938 5.07146 5.21563 5.21437C5.07188 5.35729 5 5.53437 5 5.74562C5 5.95687 5.07188 6.13542 5.21563 6.28125C5.35938 6.42708 5.5375 6.5 5.75 6.5Z"
+											fill="#FDFEFE"
+										/>
+									</g>
+								</svg>
 							</div>
+							<div class="text-sm font-medium text-gray-50 dark:text-gray-50">히스토리</div>
+						</div>
+
+						<div class="flex items-center gap-1">
+							<!-- Bookmark Filter Button -->
+							<Tooltip content="북마크만 보기" placement="bottom">
+								<button
+									class="p-1.5 rounded-lg hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition {showBookmarkedOnly
+										? 'text-blue-400'
+										: 'text-gray-50'}"
+									on:click={() => {
+										showBookmarkedOnly = !showBookmarkedOnly;
+									}}
+									aria-label="북마크만 보기"
+								>
+									{#if showBookmarkedOnly}
+										<BookmarkSolid className="size-4" />
+									{:else}
+										<Bookmark className="size-4" strokeWidth="1.5" />
+									{/if}
+								</button>
+							</Tooltip>
+
+							<!-- Search Button -->
+							<Tooltip content="검색" placement="bottom">
+								<button
+									class="p-1.5 rounded-lg hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition {showHistorySearch
+										? 'text-blue-400'
+										: 'text-gray-50'}"
+									on:click={() => {
+										showHistorySearch = !showHistorySearch;
+										if (!showHistorySearch) {
+											historySearchQuery = '';
+										}
+									}}
+									aria-label="검색"
+								>
+									<Search className="size-4" strokeWidth="1.5" />
+								</button>
+							</Tooltip>
+
+							<!-- Toggle Expand/Collapse Button -->
+							<Tooltip content={historyExpanded ? '접기' : '열기'} placement="bottom">
+								<button
+									class="p-1.5 rounded-lg hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition text-gray-400"
+									on:click={() => {
+										historyExpanded = !historyExpanded;
+									}}
+									aria-label={historyExpanded ? '접기' : '열기'}
+								>
+									{#if historyExpanded}
+										<ChevronUp className="size-4" strokeWidth="1.5" />
+									{:else}
+										<ChevronDown className="size-4" strokeWidth="1.5" />
+									{/if}
+								</button>
+							</Tooltip>
+						</div>
+					</div>
+
+					<!-- Search Input -->
+					{#if showHistorySearch}
+						<div class="mt-2 px-2" transition:slide={{ duration: 200 }}>
+							<input
+								type="text"
+								bind:value={historySearchQuery}
+								placeholder="채팅 검색"
+								class="w-full px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
 						</div>
 					{/if}
 
-					<div class=" flex-1 flex flex-col overflow-y-auto scrollbar-hidden">
-						<div class="pt-1.5">
-							{#if $chats}
-								{#each $chats as chat, idx (`chat-${chat?.id ?? idx}`)}
-									{#if idx === 0 || (idx > 0 && chat.time_range !== $chats[idx - 1].time_range)}
-										<div
-											class="w-full pl-2.5 text-xs text-gray-500 dark:text-gray-500 font-medium {idx ===
-											0
-												? ''
-												: 'pt-5'} pb-1.5"
-										>
-											{$i18n.t(chat.time_range)}
-											<!-- localisation keys for time_range to be recognized from the i18next parser (so they don't get automatically removed):
-							{$i18n.t('Today')}
-							{$i18n.t('Yesterday')}
-							{$i18n.t('Previous 7 days')}
-							{$i18n.t('Previous 30 days')}
-							{$i18n.t('January')}
-							{$i18n.t('February')}
-							{$i18n.t('March')}
-							{$i18n.t('April')}
-							{$i18n.t('May')}
-							{$i18n.t('June')}
-							{$i18n.t('July')}
-							{$i18n.t('August')}
-							{$i18n.t('September')}
-							{$i18n.t('October')}
-							{$i18n.t('November')}
-							{$i18n.t('December')}
-							-->
-										</div>
-									{/if}
-
+					<!-- Chat List -->
+					{#if historyExpanded}
+						<div class="mt-2 flex flex-col" transition:slide={{ duration: 200 }}>
+							{#if filteredChats && filteredChats.length > 0}
+								{#each filteredChats as chat, idx (`chat-${chat?.id ?? idx}`)}
 									<ChatItem
 										className=""
 										id={chat.id}
 										title={chat.title}
 										{shiftKey}
+										bookmarked={chatBookmarks[chat.id] || false}
 										selected={selectedChatId === chat.id}
 										on:select={() => {
 											selectedChatId = chat.id;
 										}}
 										on:unselect={() => {
 											selectedChatId = null;
+										}}
+										on:bookmark-toggle={() => {
+											toggleChatBookmark(chat.id);
 										}}
 										on:change={async () => {
 											initChatList();
@@ -1207,6 +1160,10 @@
 										</div>
 									</Loader>
 								{/if}
+							{:else if historySearchQuery || showBookmarkedOnly}
+								<div class="px-2 py-4 text-center text-sm text-gray-500 dark:text-gray-500">
+									검색 결과가 없습니다
+								</div>
 							{:else}
 								<div
 									class="w-full flex justify-center py-1 text-xs animate-pulse items-center gap-2"
@@ -1216,15 +1173,13 @@
 								</div>
 							{/if}
 						</div>
+					{/if}
 					</div>
-				</Folder>
+				{/if}
 			</div>
 
-			<div class="px-1.5 pt-1.5 pb-2 sticky bottom-0 z-10 -mt-3 sidebar">
-				<div
-					class=" sidebar-bg-gradient-to-t bg-linear-to-t from-gray-50 dark:from-gray-950 to-transparent from-50% pointer-events-none absolute inset-0 -z-10 -mt-6"
-				></div>
-				<div class="flex flex-col font-primary">
+			<div class="px-1.5 pt-1.5 pb-2 sticky bottom-0 z-10 -mt-3 sidebar flex flex-row">
+				<div class="flex flex-col font-primary flex-1 justify-center pl-2">
 					{#if $user !== undefined && $user !== null}
 						<UserMenu
 							role={$user?.role}
@@ -1245,11 +1200,38 @@
 										aria-label={$i18n.t('Open User Profile Menu')}
 									/>
 								</div>
-								<div class=" self-center font-medium">{$user?.name}</div>
+								<div class="flex flex-col items-start">
+									<div class=" self-center text-body-4-medium">
+										{$user?.name}
+									</div>
+									<div class=" self-center text-caption text-gray-300">
+										{$user?.role}
+									</div>
+								</div>
 							</div>
 						</UserMenu>
 					{/if}
 				</div>
+				<Tooltip
+					content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+					placement="bottom"
+				>
+					<div class="flex h-full items-center justify-center">
+						<button
+							class="flex rounded-xl size-8.5 justify-center items-center hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition {isWindows
+								? 'cursor-pointer'
+								: 'cursor-[w-resize]'}"
+							on:click={() => {
+								showSidebar.set(!$showSidebar);
+							}}
+							aria-label={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+						>
+							<div class=" self-center p-1.5">
+								<Sidebar />
+							</div>
+						</button>
+					</div>
+				</Tooltip>
 			</div>
 		</div>
 	</div>

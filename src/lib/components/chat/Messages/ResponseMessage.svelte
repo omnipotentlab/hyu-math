@@ -634,7 +634,7 @@
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
 				<Tooltip content={model?.name ?? message.model} placement="top-start">
-					<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
+					<span id="response-message-model-name" class="line-clamp-1 text-gray-100">
 						{model?.name ?? message.model}
 					</span>
 				</Tooltip>
@@ -767,7 +767,7 @@
 
 						<div
 							bind:this={contentContainerElement}
-							class="w-full flex flex-col relative {edit ? 'hidden' : ''}"
+							class="w-[80%] flex flex-col relative {edit ? 'hidden' : ''} glass-callout text-gray-100 p-4"
 							id="response-content-container"
 						>
 							{#if message.content === '' && !message.error && ((model?.info?.meta?.capabilities?.status_updates ?? true) ? (message?.statusHistory ?? [...(message?.status ? [message?.status] : [])]).length === 0 || (message?.statusHistory?.at(-1)?.hidden ?? false) : true)}

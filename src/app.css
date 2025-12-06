@@ -95,7 +95,135 @@ textarea::placeholder {
 }
 
 .input-prose {
-	@apply prose dark:prose-invert prose-headings:font-semibold prose-hr:my-4 prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-1 prose-img:my-1 prose-headings:my-2 prose-pre:my-0 prose-table:my-1 prose-blockquote:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 whitespace-pre-line;
+	@apply prose dark:prose-invert prose-headings:font-semibold prose-hr:my-4 prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-1 prose-img:my-1 prose-headings:my-2 prose-pre:my-0 prose-table:my-1 prose-blockquote:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 whitespace-pre-line text-body-4 text-gray-50;
+}
+
+/* Glass Morphism Styles */
+.glass-callout {
+	background: rgba(39, 40, 44, 0.2);
+	box-shadow: 
+		4px 4px 20px rgba(0, 0, 0, 0.1),
+		inset 2px 2px 6px rgba(206, 212, 229, 0.2),
+		inset 6px 6px 25px rgba(206, 212, 229, 0.15);
+	backdrop-filter: blur(10px);
+	border-radius: 40px 40px 40px 4px;
+}
+
+.glass-box {
+	background: rgba(39, 40, 44, 0.2);
+	box-shadow: 
+		4px 4px 20px rgba(0, 0, 0, 0.1),
+		inset 2px 2px 6px rgba(206, 212, 229, 0.2),
+		inset 6px 6px 25px rgba(206, 212, 229, 0.15);
+	backdrop-filter: blur(10px);
+	border-radius: 40px 40px 40px 40px;
+}
+
+.glass-border {
+	background: rgba(39, 40, 44, 0.2);
+	box-shadow: 
+		4px 4px 20px rgba(0, 0, 0, 0.1),
+		inset 2px 2px 6px rgba(206, 212, 229, 0.2),
+		inset 6px 6px 25px rgba(206, 212, 229, 0.15);
+	backdrop-filter: blur(10px);
+	border-radius: 20px;
+}
+
+.glass-sm {
+	background: rgba(39, 40, 44, 0.2);
+	box-shadow: 
+		2px 2px 10px rgba(0, 0, 0, 0.1),
+		inset 1px 1px 3px rgba(206, 212, 229, 0.2),
+		inset 3px 3px 12px rgba(206, 212, 229, 0.15);
+	backdrop-filter: blur(10px);
+}
+
+/* Glass Morphism Dropdown Button */
+.glass-dropdown {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: rgba(39, 40, 44, 0.2);
+	box-shadow: 
+		4px 4px 20px rgba(0, 0, 0, 0.1),
+		inset 2px 2px 6px rgba(206, 212, 229, 0.2),
+		inset 6px 6px 25px rgba(206, 212, 229, 0.15);
+	backdrop-filter: blur(10px);
+	border-radius: 9999px;
+
+	height: 2.25rem;
+	color: #FDFEFE;
+	font-family: 'Pretendard', sans-serif;
+	font-weight: 400;
+	font-size: 0.75rem;
+	line-height: 150%;
+	border: none;
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.glass-dropdown:hover {
+	box-shadow: 
+		6px 6px 24px rgba(0, 0, 0, 0.15),
+		inset 2px 2px 6px rgba(206, 212, 229, 0.25),
+		inset 6px 6px 25px rgba(206, 212, 229, 0.2);
+	background: rgba(39, 40, 44, 0.25);
+}
+
+.glass-dropdown:active {
+	box-shadow: 
+		2px 2px 10px rgba(0, 0, 0, 0.1),
+		inset 2px 2px 6px rgba(206, 212, 229, 0.2),
+		inset 6px 6px 25px rgba(206, 212, 229, 0.15);
+	background: rgba(39, 40, 44, 0.15);
+}
+
+/* Glass Morphism Dropdown Menu */
+.glass-dropdown-menu {
+	position: absolute;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+
+	width: 100%;
+
+	background: rgba(39, 40, 44, 0.5);
+	box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.1);
+	backdrop-filter: blur(20px);
+	border-radius: 20px;
+	z-index: 50;
+	box-sizing: border-box;
+}
+
+/* Glass Dropdown Menu Option */
+.glass-dropdown-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	width: 100%;
+	padding: 0.5rem 1rem 0.5rem 1rem;
+	border-radius: 0.75rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	color: #B4BCD0;
+
+	line-height: 150%;
+	border: none;
+	background: transparent;
+	text-align: left;
+}
+
+.glass-dropdown-option:hover {
+	background: rgba(206, 212, 229, 0.1);
+	color: #FDFEFE;
+}
+
+.glass-dropdown-option.active {
+	background: rgba(206, 212, 229, 0.15);
+	color: #FDFEFE;
+	font-weight: 500;
 }
 
 .input-prose-sm {
@@ -290,6 +418,122 @@ input[type='number'] {
 
 .katex-display::-webkit-scrollbar-corner {
 	display: none;
+}
+
+/* Math formula inline rendering styles */
+.math-source-hidden {
+	font-size: 0 !important;
+	line-height: 0 !important;
+	color: transparent !important;
+	display: inline !important;
+	overflow: hidden !important;
+	pointer-events: none !important;
+	vertical-align: middle !important;
+	/* Keep width in layout - don't use position: absolute or width: 0 */
+	/* This allows clicking to the right of rendered formulas */
+}
+
+.math-render-widget {
+	display: inline-block;
+	cursor: pointer;
+	padding: 0 4px;
+	margin: 0 2px;
+	border-radius: 3px;
+	transition: background-color 0.15s ease;
+	vertical-align: middle;
+	line-height: 1;
+	font-family: 'KaTeX_Main', 'Times New Roman', serif;
+}
+
+.math-render-widget:hover {
+	background-color: rgba(0, 0, 0, 0.06);
+}
+
+.math-render-widget .katex {
+	font-size: 1.05em;
+}
+
+.math-error {
+	color: #cc0000 !important;
+	text-decoration: underline wavy #cc0000 !important;
+	cursor: help;
+	font-family: monospace;
+}
+
+/* Math code input mode - similar to # tag styling */
+.math-code-input {
+	background-color: rgba(59, 130, 246, 0.08) !important;
+	border: 1px solid rgba(59, 130, 246, 0.3);
+	border-radius: 4px;
+	padding: 2px 6px;
+	margin: 0 2px;
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+	font-size: 0.95em;
+	color: white;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.05);
+}
+
+.math-code-input.math-incomplete {
+	border-style: dashed;
+	opacity: 0.85;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+	.math-code-input {
+		background-color: rgba(96, 165, 250, 0.12) !important;
+		border-color: rgba(96, 165, 250, 0.4);
+		color: #93c5fd;
+		box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.08);
+	}
+}
+
+/* Math formula floating preview */
+.math-preview-widget {
+	position: fixed;
+	padding: 8px 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	font-size: 1.1em;
+	white-space: nowrap;
+	top: -3rem;
+	z-index: 99999;
+
+	pointer-events: none;
+	color: black;
+}
+
+.math-preview-error {
+	color: #dc2626;
+	font-size: 0.85em;
+	font-style: italic;
+}
+
+.math-preview-loading {
+	color: black;
+	font-size: 0.85em;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Dark mode for preview */
+@media (prefers-color-scheme: dark) {
+	.math-preview-widget {
+		background: #1f2937;
+		border-color: #374151;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+	}
 }
 
 .cm-editor {

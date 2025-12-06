@@ -41,6 +41,8 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Document from '$lib/components/icons/Document.svelte';
 	import Sparkles from '$lib/components/icons/Sparkles.svelte';
+	import Bookmark from '$lib/components/icons/Bookmark.svelte';
+	import BookmarkSolid from '$lib/components/icons/BookmarkSolid.svelte';
 	import { generateTitle } from '$lib/apis';
 
 	export let className = '';
@@ -50,6 +52,7 @@
 
 	export let selected = false;
 	export let shiftKey = false;
+	export let bookmarked = false;
 
 	export let onDragEnd = () => {};
 
@@ -310,6 +313,12 @@
 
 		generating = false;
 	};
+
+	const toggleBookmark = (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		dispatch('bookmark-toggle');
+	};
 </script>
 
 <ShareChatModal bind:show={showShareChatModal} chatId={id} />
@@ -342,25 +351,20 @@
 <div
 	id="sidebar-chat-group"
 	bind:this={itemElement}
-	class=" w-full {className} relative group"
+	class="  {className} relative group mt-2 ml-2 mr-2"
 	draggable={draggable && !confirmEdit}
 >
 	{#if confirmEdit}
 		<div
 			id="sidebar-chat-item"
-			class=" w-full flex justify-between rounded-xl px-[11px] py-[6px] {id === $chatId ||
-			confirmEdit
-				? 'bg-gray-100 dark:bg-gray-900 selected'
-				: selected
-					? 'bg-gray-100 dark:bg-gray-950 selected'
-					: 'group-hover:bg-gray-100 dark:group-hover:bg-gray-950'}  whitespace-nowrap text-ellipsis relative {generating
+			class="w-full flex items-center py-[2px] px-1 gap-2 h-[25px] rounded-xl bg-gray-500/30 dark:bg-gray-500/30 whitespace-nowrap text-ellipsis relative {generating
 				? 'cursor-not-allowed'
 				: ''}"
 		>
 			<input
 				id="chat-title-input-{id}"
 				bind:value={chatTitle}
-				class=" bg-transparent w-full outline-hidden mr-10"
+				class="bg-transparent w-full outline-none mr-10 text-sm leading-[21px] font-normal text-white dark:text-white"
 				placeholder={generating ? $i18n.t('Generating...') : ''}
 				disabled={generating}
 				on:keydown={chatTitleInputKeydownHandler}
@@ -401,12 +405,12 @@
 	{:else}
 		<a
 			id="sidebar-chat-item"
-			class=" w-full flex justify-between rounded-xl px-[11px] py-[6px] {id === $chatId ||
-			confirmEdit
-				? 'bg-gray-100 dark:bg-gray-900 selected'
+			class="w-full flex items-center py-[2px] px-1 gap-2 h-[25px] rounded-xl whitespace-nowrap text-ellipsis {id ===
+			$chatId || confirmEdit
+				? 'bg-gray-500/30 dark:bg-gray-500/30'
 				: selected
-					? 'bg-gray-100 dark:bg-gray-950 selected'
-					: ' group-hover:bg-gray-100 dark:group-hover:bg-gray-950'}  whitespace-nowrap text-ellipsis"
+					? 'bg-gray-500/30 dark:bg-gray-500/30'
+					: 'group-hover:bg-gray-500/30 dark:group-hover:bg-gray-500/30'}"
 			href="/c/{id}"
 			on:click={() => {
 				dispatch('select');
@@ -435,8 +439,14 @@
 			on:focus={(e) => {}}
 			draggable="false"
 		>
-			<div class=" flex self-center flex-1 w-full">
-				<div dir="auto" class=" text-left self-center overflow-hidden w-full h-[20px] truncate">
+			<div class="flex self-center flex-1 w-full overflow-hidden">
+				<div
+					dir="auto"
+					class="text-sm leading-[21px] font-normal text-left self-center overflow-hidden w-full truncate {id ===
+					$chatId || selected
+						? 'text-white dark:text-white'
+						: 'text-[#8D96AD] dark:text-[#8D96AD]'}"
+				>
 					{title}
 				</div>
 			</div>
@@ -446,17 +456,12 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		id="sidebar-chat-item-menu"
-		class="
-        {id === $chatId || confirmEdit
-			? 'from-gray-100 dark:from-gray-900 selected'
-			: selected
-				? 'from-gray-100 dark:from-gray-950 selected'
-				: 'invisible group-hover:visible from-gray-100 dark:from-gray-950'}
-            absolute {className === 'pr-2'
-			? 'right-[8px]'
-			: 'right-1'} top-[4px] py-1 pr-0.5 mr-1.5 pl-5 bg-linear-to-l from-80%
-
-              to-transparent"
+		class="{id === $chatId || confirmEdit || selected
+			? 'visible'
+			: 'invisible group-hover:visible'} absolute right-1 top-0 h-[25px] flex items-center pr-1 pl-5 bg-linear-to-l {id ===
+		$chatId || confirmEdit || selected
+			? ''
+			: ''} items-center h-full"
 		on:mouseenter={(e) => {
 			mouseOver = true;
 		}}
@@ -508,7 +513,23 @@
 				</Tooltip>
 			</div>
 		{:else}
-			<div class="flex self-center z-10 items-end">
+			<div class="flex self-center z-10 items-end gap-0.5">
+				<Tooltip content={bookmarked ? $i18n.t('Remove Bookmark') : $i18n.t('Add Bookmark')}>
+					<button
+						aria-label="Bookmark"
+						class="self-center dark:hover:text-white transition {bookmarked
+							? 'text-yellow-500'
+							: ''}"
+						on:click={toggleBookmark}
+					>
+						{#if bookmarked}
+							<BookmarkSolid className="size-4" />
+						{:else}
+							<Bookmark className="size-4" strokeWidth="2" />
+						{/if}
+					</button>
+				</Tooltip>
+
 				<ChatMenu
 					chatId={id}
 					cloneChatHandler={() => {

@@ -109,6 +109,47 @@
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
 
+	// Proficiency level and response style props
+	export let proficiencyLevel = 'intermediate';
+	export let responseStyle = 'question_guidance';
+
+	// Dropdown state
+	let showProficiencyDropdown = false;
+	let showResponseStyleDropdown = false;
+
+	// Multiline detection for layout switching
+	let isMultiline = false;
+
+	// multiline 판단: 줄바꿈이 있거나 텍스트가 너무 길 때
+	$: {
+		const lineBreaks = (prompt.match(/\n/g) || []).length;
+		const textLength = prompt.length;
+		// 줄바꿈이 있거나, 60자 이상이면 multiline으로 전환
+		isMultiline = lineBreaks > 0 || textLength > 30;
+	}
+
+	const proficiencyLevels = {
+		initial: '초급',
+		intermediate: '중급',
+		advanced: '고급'
+	};
+
+	const responseStyles = {
+		question_guidance: '질문식 유도',
+		problem_bank: '문제 은행',
+		detailed_lecture: '자세한 강의'
+	};
+
+	const setProficiencyLevel = (level) => {
+		proficiencyLevel = level;
+		showProficiencyDropdown = false;
+	};
+
+	const setResponseStyle = (style) => {
+		responseStyle = style;
+		showResponseStyleDropdown = false;
+	};
+
 	let showInputVariablesModal = false;
 	let inputVariablesModalCallback = (variableValues) => {};
 	let inputVariables = {};
@@ -783,6 +824,21 @@
 		shiftKey = false;
 	};
 
+	// 드롭다운 외부 클릭 핸들러
+	const handleClickOutside = (event) => {
+		const target = event.target;
+		const proficiencyDropdown = document.getElementById('proficiency-dropdown-input');
+		const responseStyleDropdown = document.getElementById('response-style-dropdown-input');
+
+		if (proficiencyDropdown && !proficiencyDropdown.contains(target)) {
+			showProficiencyDropdown = false;
+		}
+
+		if (responseStyleDropdown && !responseStyleDropdown.contains(target)) {
+			showResponseStyleDropdown = false;
+		}
+	};
+
 	onMount(async () => {
 		suggestions = [
 			{
@@ -912,6 +968,9 @@
 		dropzoneElement?.addEventListener('drop', onDrop);
 		dropzoneElement?.addEventListener('dragleave', onDragLeave);
 
+		// 외부 클릭 리스너 등록
+		document.addEventListener('click', handleClickOutside);
+
 		await tools.set(await getTools(localStorage.token));
 	});
 
@@ -930,6 +989,9 @@
 			dropzoneElement?.removeEventListener('drop', onDrop);
 			dropzoneElement?.removeEventListener('dragleave', onDragLeave);
 		}
+
+		// 외부 클릭 리스너 제거
+		document.removeEventListener('click', handleClickOutside);
 	});
 </script>
 
@@ -1059,9 +1121,9 @@
 
 						<div
 							id="message-input-container"
-							class="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border {$temporaryChatEnabled
-								? 'border-dashed border-gray-100 dark:border-gray-800 hover:border-gray-200 focus-within:border-gray-200 hover:dark:border-gray-700 focus-within:dark:border-gray-700'
-								: ' border-gray-100 dark:border-gray-850 hover:border-gray-200 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800'}  transition px-1 bg-white/5 dark:bg-gray-500/5 backdrop-blur-sm dark:text-gray-100"
+							class="text-gray-100 flex-1 flex flex-col relative w-full {$temporaryChatEnabled
+								? ''
+								: ''}  transition"
 							dir={$settings?.chatDirection ?? 'auto'}
 						>
 							{#if atSelectedModel !== undefined}
@@ -1179,201 +1241,13 @@
 								</div>
 							{/if}
 
-							<div class="px-2.5">
-								<div
-									class="scrollbar-hidden rtl:text-right ltr:text-left bg-transparent dark:text-gray-100 outline-hidden w-full pb-1 px-1 resize-none h-fit max-h-96 overflow-auto {files.length ===
-									0
-										? atSelectedModel !== undefined
-											? 'pt-1.5'
-											: 'pt-2.5'
-										: ''}"
-									id="chat-input-container"
-								>
-									{#if suggestions}
-										{#key $settings?.richTextInput ?? true}
-											{#key $settings?.showFormattingToolbar ?? false}
-												<RichTextInput
-													bind:this={chatInputElement}
-													id="chat-input"
-													onChange={(e) => {
-														prompt = e.md;
-														command = getCommand();
-													}}
-													json={true}
-													richText={$settings?.richTextInput ?? true}
-													messageInput={true}
-													showFormattingToolbar={$settings?.showFormattingToolbar ?? false}
-													floatingMenuPlacement={'top-start'}
-													insertPromptAsRichText={$settings?.insertPromptAsRichText ?? false}
-													shiftEnter={!($settings?.ctrlEnterToSend ?? false) &&
-														!$mobile &&
-														!(
-															'ontouchstart' in window ||
-															navigator.maxTouchPoints > 0 ||
-															navigator.msMaxTouchPoints > 0
-														)}
-													placeholder={placeholder ? placeholder : $i18n.t('Send a Message')}
-													largeTextAsFile={($settings?.largeTextAsFile ?? false) && !shiftKey}
-													autocomplete={$config?.features?.enable_autocomplete_generation &&
-														($settings?.promptAutocomplete ?? false)}
-													generateAutoCompletion={async (text) => {
-														if (selectedModelIds.length === 0 || !selectedModelIds.at(0)) {
-															toast.error($i18n.t('Please select a model first.'));
-														}
-
-														const res = await generateAutoCompletion(
-															localStorage.token,
-															selectedModelIds.at(0),
-															text,
-															history?.currentId
-																? createMessagesList(history, history.currentId)
-																: null
-														).catch((error) => {
-															console.log(error);
-
-															return null;
-														});
-
-														console.log(res);
-														return res;
-													}}
-													{suggestions}
-													oncompositionstart={() => (isComposing = true)}
-													oncompositionend={(e) => {
-														compositionEndedAt = e.timeStamp;
-														isComposing = false;
-													}}
-													on:keydown={async (e) => {
-														e = e.detail.event;
-
-														const isCtrlPressed = e.ctrlKey || e.metaKey; // metaKey is for Cmd key on Mac
-														const suggestionsContainerElement =
-															document.getElementById('suggestions-container');
-
-														if (e.key === 'Escape') {
-															stopResponse();
-														}
-
-														if (prompt === '' && e.key == 'ArrowUp') {
-															e.preventDefault();
-
-															const userMessageElement = [
-																...document.getElementsByClassName('user-message')
-															]?.at(-1);
-
-															if (userMessageElement) {
-																userMessageElement.scrollIntoView({ block: 'center' });
-																const editButton = [
-																	...document.getElementsByClassName('edit-user-message-button')
-																]?.at(-1);
-
-																editButton?.click();
-															}
-														}
-
-														if (!suggestionsContainerElement) {
-															if (
-																!$mobile ||
-																!(
-																	'ontouchstart' in window ||
-																	navigator.maxTouchPoints > 0 ||
-																	navigator.msMaxTouchPoints > 0
-																)
-															) {
-																if (inOrNearComposition(e)) {
-																	return;
-																}
-
-																// Uses keyCode '13' for Enter key for chinese/japanese keyboards.
-																//
-																// Depending on the user's settings, it will send the message
-																// either when Enter is pressed or when Ctrl+Enter is pressed.
-																const enterPressed =
-																	($settings?.ctrlEnterToSend ?? false)
-																		? (e.key === 'Enter' || e.keyCode === 13) && isCtrlPressed
-																		: (e.key === 'Enter' || e.keyCode === 13) && !e.shiftKey;
-
-																if (enterPressed) {
-																	e.preventDefault();
-																	if (prompt !== '' || files.length > 0) {
-																		dispatch('submit', prompt);
-																	}
-																}
-															}
-														}
-
-														if (e.key === 'Escape') {
-															console.log('Escape');
-															atSelectedModel = undefined;
-															selectedToolIds = [];
-															selectedFilterIds = [];
-
-															webSearchEnabled = false;
-															imageGenerationEnabled = false;
-															codeInterpreterEnabled = false;
-														}
-													}}
-													on:paste={async (e) => {
-														e = e.detail.event;
-														console.log(e);
-
-														const clipboardData = e.clipboardData || window.clipboardData;
-
-														if (clipboardData && clipboardData.items) {
-															for (const item of clipboardData.items) {
-																if (item.type.indexOf('image') !== -1) {
-																	const blob = item.getAsFile();
-																	const reader = new FileReader();
-
-																	reader.onload = function (e) {
-																		files = [
-																			...files,
-																			{
-																				type: 'image',
-																				url: `${e.target.result}`
-																			}
-																		];
-																	};
-
-																	reader.readAsDataURL(blob);
-																} else if (item?.kind === 'file') {
-																	const file = item.getAsFile();
-																	if (file) {
-																		const _files = [file];
-																		await inputFilesHandler(_files);
-																		e.preventDefault();
-																	}
-																} else if (item.type === 'text/plain') {
-																	if (($settings?.largeTextAsFile ?? false) && !shiftKey) {
-																		const text = clipboardData.getData('text/plain');
-
-																		if (text.length > PASTED_TEXT_CHARACTER_LIMIT) {
-																			e.preventDefault();
-																			const blob = new Blob([text], { type: 'text/plain' });
-																			const file = new File(
-																				[blob],
-																				`Pasted_Text_${Date.now()}.txt`,
-																				{
-																					type: 'text/plain'
-																				}
-																			);
-
-																			await uploadFileHandler(file, true);
-																		}
-																	}
-																}
-															}
-														}
-													}}
-												/>
-											{/key}
-										{/key}
-									{/if}
-								</div>
-							</div>
-
-							<div class=" flex justify-between mt-0.5 mb-2.5 mx-0.5 max-w-full" dir="ltr">
-								<div class="ml-1 self-end flex items-center flex-1 max-w-[80%]">
+							<!-- New single-row layout container -->
+							<div
+								class="flex flex-row justify-center items-top gap-2 px-2.5 pb-2.5 mt-0.5"
+								dir="ltr"
+							>
+								<!-- Left: InputMenu (AddFile) button -->
+								<div class="flex-none">
 									<InputMenu
 										bind:files
 										selectedModels={atSelectedModel ? [atSelectedModel.id] : selectedModels}
@@ -1430,371 +1304,354 @@
 									>
 										<div
 											id="input-menu-button"
-											class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
+											class="w-12 h-12 rounded-full bg-[rgba(39,40,44,0.2)] shadow-[4px_4px_20px_rgba(0,0,0,0.1),inset_2px_2px_6px_rgba(206,212,229,0.2),inset_6px_6px_25px_rgba(206,212,229,0.15)] backdrop-blur-[10px] flex justify-center items-center hover:bg-[rgba(39,40,44,0.3)] transition outline-hidden focus:outline-hidden"
 										>
-											<PlusAlt className="size-5.5" />
+											<PlusAlt className="size-10" />
 										</div>
 									</InputMenu>
-
-									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || (toggleFilters && toggleFilters.length > 0)}
-										<div
-											class="flex self-center w-[1px] h-4 mx-1 bg-gray-200/50 dark:bg-gray-800/50"
-										/>
-
-										<IntegrationsMenu
-											selectedModels={atSelectedModel ? [atSelectedModel.id] : selectedModels}
-											{toggleFilters}
-											{showWebSearchButton}
-											{showImageGenerationButton}
-											{showCodeInterpreterButton}
-											bind:selectedToolIds
-											bind:selectedFilterIds
-											bind:webSearchEnabled
-											bind:imageGenerationEnabled
-											bind:codeInterpreterEnabled
-											closeOnOutsideClick={integrationsMenuCloseOnOutsideClick}
-											onShowValves={(e) => {
-												const { type, id } = e;
-												selectedValvesType = type;
-												selectedValvesItemId = id;
-												showValvesModal = true;
-												integrationsMenuCloseOnOutsideClick = false;
-											}}
-											onClose={async () => {
-												await tick();
-
-												const chatInput = document.getElementById('chat-input');
-												chatInput?.focus();
-											}}
-										>
-											<div
-												id="integration-menu-button"
-												class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
-											>
-												<Component className="size-4.5" strokeWidth="1.5" />
-											</div>
-										</IntegrationsMenu>
-									{/if}
-
-									{#if selectedModelIds.length === 1 && $models.find((m) => m.id === selectedModelIds[0])?.has_user_valves}
-										<div class="ml-1 flex gap-1.5">
-											<Tooltip content={$i18n.t('Valves')} placement="top">
-												<button
-													id="model-valves-button"
-													class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
-													on:click={() => {
-														selectedValvesType = 'function';
-														selectedValvesItemId = selectedModelIds[0]?.split('.')[0];
-														showValvesModal = true;
-													}}
-												>
-													<Knobs className="size-4" strokeWidth="1.5" />
-												</button>
-											</Tooltip>
-										</div>
-									{/if}
-
-									<div class="ml-1 flex gap-1.5">
-										{#if (selectedToolIds ?? []).length > 0}
-											<Tooltip
-												content={$i18n.t('{{COUNT}} Available Tools', {
-													COUNT: selectedToolIds.length
-												})}
-											>
-												<button
-													class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
-													aria-label="Available Tools"
-													type="button"
-													on:click={() => {
-														showTools = !showTools;
-													}}
-												>
-													<Wrench className="size-4" strokeWidth="1.75" />
-
-													<span class="text-sm">
-														{selectedToolIds.length}
-													</span>
-												</button>
-											</Tooltip>
-										{/if}
-
-										{#each selectedFilterIds as filterId}
-											{@const filter = toggleFilters.find((f) => f.id === filterId)}
-											{#if filter}
-												<Tooltip content={filter?.name} placement="top">
-													<button
-														on:click|preventDefault={() => {
-															selectedFilterIds = selectedFilterIds.filter((id) => id !== filterId);
-														}}
-														type="button"
-														class="group p-[7px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {selectedFilterIds.includes(
-															filterId
-														)
-															? 'text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
-															: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} capitalize"
-													>
-														{#if filter?.icon}
-															<div class="size-4 items-center flex justify-center">
-																<img
-																	src={filter.icon}
-																	class="size-3.5 {filter.icon.includes('svg')
-																		? 'dark:invert-[80%]'
-																		: ''}"
-																	style="fill: currentColor;"
-																	alt={filter.name}
-																/>
-															</div>
-														{:else}
-															<Sparkles className="size-4" strokeWidth="1.75" />
-														{/if}
-														<div class="hidden group-hover:block">
-															<XMark className="size-4" strokeWidth="1.75" />
-														</div>
-													</button>
-												</Tooltip>
-											{/if}
-										{/each}
-
-										{#if webSearchEnabled}
-											<Tooltip content={$i18n.t('Web Search')} placement="top">
-												<button
-													on:click|preventDefault={() => (webSearchEnabled = !webSearchEnabled)}
-													type="button"
-													class="group p-[7px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {webSearchEnabled ||
-													($settings?.webSearch ?? false) === 'always'
-														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
-														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
-												>
-													<GlobeAlt className="size-4" strokeWidth="1.75" />
-													<div class="hidden group-hover:block">
-														<XMark className="size-4" strokeWidth="1.75" />
-													</div>
-												</button>
-											</Tooltip>
-										{/if}
-
-										{#if imageGenerationEnabled}
-											<Tooltip content={$i18n.t('Image')} placement="top">
-												<button
-													on:click|preventDefault={() =>
-														(imageGenerationEnabled = !imageGenerationEnabled)}
-													type="button"
-													class="group p-[7px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {imageGenerationEnabled
-														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
-														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
-												>
-													<Photo className="size-4" strokeWidth="1.75" />
-													<div class="hidden group-hover:block">
-														<XMark className="size-4" strokeWidth="1.75" />
-													</div>
-												</button>
-											</Tooltip>
-										{/if}
-
-										{#if codeInterpreterEnabled}
-											<Tooltip content={$i18n.t('Code Interpreter')} placement="top">
-												<button
-													aria-label={codeInterpreterEnabled
-														? $i18n.t('Disable Code Interpreter')
-														: $i18n.t('Enable Code Interpreter')}
-													aria-pressed={codeInterpreterEnabled}
-													on:click|preventDefault={() =>
-														(codeInterpreterEnabled = !codeInterpreterEnabled)}
-													type="button"
-													class=" group p-[7px] flex gap-1.5 items-center text-sm transition-colors duration-300 max-w-full overflow-hidden {codeInterpreterEnabled
-														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
-														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} {($settings?.highContrastMode ??
-													false)
-														? 'm-1'
-														: 'focus:outline-hidden rounded-full'}"
-												>
-													<Terminal className="size-3.5" strokeWidth="2" />
-
-													<div class="hidden group-hover:block">
-														<XMark className="size-4" strokeWidth="1.75" />
-													</div>
-												</button>
-											</Tooltip>
-										{/if}
-									</div>
 								</div>
 
-								<div class="self-end flex space-x-1 mr-1 shrink-0">
-									{#if (!history?.currentId || history.messages[history.currentId]?.done == true) && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.stt ?? true))}
-										<!-- {$i18n.t('Record voice')} -->
-										<Tooltip content={$i18n.t('Dictate')}>
+								<!-- Center: RichTextInput area -->
+								<div
+									class="flex-1 flex {isMultiline
+										? 'flex-col-reverse items-start'
+										: 'flex-row items-center'} px-7 py-1.5 min-h-12 bg-[rgba(39,40,44,0.2)] shadow-[4px_4px_20px_rgba(0,0,0,0.1),inset_2px_2px_6px_rgba(206,212,229,0.2),inset_6px_6px_25px_rgba(206,212,229,0.15)] backdrop-blur-[10px] rounded-4xl gap-2"
+								>
+									<!-- Dropdowns Section -->
+									<div class="flex-shrink-0 flex items-center gap-1.5 {isMultiline ? 'w-full' : ''}">
+										<!-- Proficiency Level Dropdown -->
+										<div class="relative" id="proficiency-dropdown-input">
 											<button
-												id="voice-input-button"
-												class=" text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 transition rounded-full p-1.5 mr-0.5 self-center"
-												type="button"
-												on:click={async () => {
-													try {
-														let stream = await navigator.mediaDevices
-															.getUserMedia({ audio: true })
-															.catch(function (err) {
-																toast.error(
-																	$i18n.t(
-																		`Permission denied when accessing microphone: {{error}}`,
-																		{
-																			error: err
-																		}
-																	)
-																);
-																return null;
-															});
-
-														if (stream) {
-															recording = true;
-															const tracks = stream.getTracks();
-															tracks.forEach((track) => track.stop());
-														}
-														stream = null;
-													} catch {
-														toast.error($i18n.t('Permission denied when accessing microphone'));
-													}
+												on:click={() => {
+													showProficiencyDropdown = !showProficiencyDropdown;
+													showResponseStyleDropdown = false;
 												}}
-												aria-label="Voice Input"
+												class="flex items-center gap-1 px-2.5 py-1 bg-[rgba(39,40,44,0.3)] shadow-[2px_2px_10px_rgba(0,0,0,0.1),inset_1px_1px_3px_rgba(206,212,229,0.15)] backdrop-blur-[10px] rounded-full h-7 text-caption text-gray-50 hover:bg-[rgba(39,40,44,0.4)] transition-all"
+												aria-label="수준 선택: {proficiencyLevels[proficiencyLevel]}"
 											>
+												<span>{proficiencyLevels[proficiencyLevel]}</span>
 												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 20 20"
-													fill="currentColor"
-													class="w-5 h-5 translate-y-[0.5px]"
+													class="w-3 h-3 transition-transform duration-200 {showProficiencyDropdown
+														? 'rotate-180'
+														: ''}"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
 												>
-													<path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
 													<path
-														d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.29 5.585 5.25 5.954V17.5h-1.5a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-1.5v-1.546A6.001 6.001 0 0016 10v-.357a.75.75 0 00-1.5 0V10a4.5 4.5 0 01-9 0v-.357z"
+														d="M9.99595 12.75C9.89595 12.75 9.8022 12.7326 9.7147 12.6979C9.6272 12.6632 9.54873 12.6111 9.47928 12.5416L5.52803 8.59038C5.37053 8.43288 5.29525 8.25343 5.3022 8.05204C5.30914 7.85065 5.389 7.67357 5.54178 7.52079C5.69456 7.36801 5.87164 7.29163 6.07303 7.29163C6.27442 7.29163 6.4515 7.36801 6.60428 7.52079L10.0001 10.9375L13.4168 7.52079C13.5696 7.36801 13.7466 7.2951 13.948 7.30204C14.1494 7.30899 14.3265 7.38885 14.4793 7.54163C14.6321 7.6944 14.7084 7.87149 14.7084 8.07288C14.7084 8.27426 14.6297 8.45329 14.4722 8.60996L10.5209 12.5416C10.4459 12.6111 10.3647 12.6632 10.2772 12.6979C10.1897 12.7326 10.0959 12.75 9.99595 12.75Z"
+														fill="#FDFEFE"
 													/>
 												</svg>
 											</button>
-										</Tooltip>
-									{/if}
 
-									{#if (taskIds && taskIds.length > 0) || (history.currentId && history.messages[history.currentId]?.done != true) || generating}
-										<div class=" flex items-center">
-											<Tooltip content={$i18n.t('Stop')}>
-												<button
-													class="bg-white hover:bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-1.5"
-													on:click={() => {
-														stopResponse();
-													}}
+											{#if showProficiencyDropdown}
+												<div
+													class="absolute bottom-full mb-2 w-20 bg-[rgba(39,40,44,0.5)] shadow-[4px_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[20px] rounded-2xl z-50 p-1"
 												>
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 24 24"
-														fill="currentColor"
-														class="size-5"
-													>
-														<path
-															fill-rule="evenodd"
-															d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm6-2.438c0-.724.588-1.312 1.313-1.312h4.874c.725 0 1.313.588 1.313 1.313v4.874c0 .725-.588 1.313-1.313 1.313H9.564a1.312 1.312 0 01-1.313-1.313V9.564z"
-															clip-rule="evenodd"
-														/>
-													</svg>
-												</button>
-											</Tooltip>
+													{#each Object.entries(proficiencyLevels) as [key, label]}
+														<button
+															on:click={() => setProficiencyLevel(key)}
+															class="w-full text-left px-3 py-1.5 rounded-xl text-caption {proficiencyLevel ===
+															key
+																? 'bg-[rgba(206,212,229,0.15)] text-gray-50 font-medium'
+																: 'text-gray-300 hover:bg-[rgba(206,212,229,0.1)] hover:text-gray-50'} transition-all"
+														>
+															{label}
+														</button>
+													{/each}
+												</div>
+											{/if}
 										</div>
-									{:else if prompt === '' && files.length === 0 && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.call ?? true))}
-										<div class=" flex items-center">
-											<!-- {$i18n.t('Call')} -->
-											<Tooltip content={$i18n.t('Voice mode')}>
-												<button
-													class=" bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full p-1.5 self-center"
-													type="button"
-													on:click={async () => {
-														if (selectedModels.length > 1) {
-															toast.error($i18n.t('Select only one model to call'));
 
-															return;
-														}
+										<!-- Response Style Dropdown -->
+										<div class="relative" id="response-style-dropdown-input">
+											<button
+												on:click={() => {
+													showResponseStyleDropdown = !showResponseStyleDropdown;
+													showProficiencyDropdown = false;
+												}}
+												class="flex items-center gap-1 px-2.5 py-1 bg-[rgba(39,40,44,0.3)] shadow-[2px_2px_10px_rgba(0,0,0,0.1),inset_1px_1px_3px_rgba(206,212,229,0.15)] backdrop-blur-[10px] rounded-full h-7 text-caption text-gray-50 hover:bg-[rgba(39,40,44,0.4)] transition-all"
+												aria-label="응답 스타일 선택: {responseStyles[responseStyle]}"
+											>
+												<span>{responseStyles[responseStyle]}</span>
+												<svg
+													class="w-3 h-3 transition-transform duration-200 {showResponseStyleDropdown
+														? 'rotate-180'
+														: ''}"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+												>
+													<path
+														d="M9.99595 12.75C9.89595 12.75 9.8022 12.7326 9.7147 12.6979C9.6272 12.6632 9.54873 12.6111 9.47928 12.5416L5.52803 8.59038C5.37053 8.43288 5.29525 8.25343 5.3022 8.05204C5.30914 7.85065 5.389 7.67357 5.54178 7.52079C5.69456 7.36801 5.87164 7.29163 6.07303 7.29163C6.27442 7.29163 6.4515 7.36801 6.60428 7.52079L10.0001 10.9375L13.4168 7.52079C13.5696 7.36801 13.7466 7.2951 13.948 7.30204C14.1494 7.30899 14.3265 7.38885 14.4793 7.54163C14.6321 7.6944 14.7084 7.87149 14.7084 8.07288C14.7084 8.27426 14.6297 8.45329 14.4722 8.60996L10.5209 12.5416C10.4459 12.6111 10.3647 12.6632 10.2772 12.6979C10.1897 12.7326 10.0959 12.75 9.99595 12.75Z"
+														fill="#FDFEFE"
+													/>
+												</svg>
+											</button>
 
-														if ($config.audio.stt.engine === 'web') {
-															toast.error(
-																$i18n.t('Call feature is not supported when using Web STT engine')
-															);
+											{#if showResponseStyleDropdown}
+												<div
+													class="absolute bottom-full mb-2 w-28 bg-[rgba(39,40,44,0.5)] shadow-[4px_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[20px] rounded-2xl z-50 p-1"
+												>
+													{#each Object.entries(responseStyles) as [key, label]}
+														<button
+															on:click={() => setResponseStyle(key)}
+															class="w-full text-left px-3 py-1.5 rounded-xl text-caption {responseStyle ===
+															key
+																? 'bg-[rgba(206,212,229,0.15)] text-gray-50 font-medium'
+																: 'text-gray-300 hover:bg-[rgba(206,212,229,0.1)] hover:text-gray-50'} transition-all"
+														>
+															{label}
+														</button>
+													{/each}
+												</div>
+											{/if}
+										</div>
+									</div>
 
-															return;
-														}
-														// check if user has access to getUserMedia
-														try {
-															let stream = await navigator.mediaDevices.getUserMedia({
-																audio: true
-															});
-															// If the user grants the permission, proceed to show the call overlay
-
-															if (stream) {
-																const tracks = stream.getTracks();
-																tracks.forEach((track) => track.stop());
+									<!-- Editor Section -->
+									<div class="flex-grow {isMultiline ? 'w-full' : ''}">
+										<div
+											class="w-full scrollbar-hidden rtl:text-right ltr:text-left bg-transparent text-gray-50 text-body-3 outline-hidden h-fit max-h-96 overflow-auto"
+											id="chat-input-container"
+										>
+										{#if suggestions}
+											{#key $settings?.richTextInput ?? true}
+												{#key $settings?.showFormattingToolbar ?? false}
+													<RichTextInput
+														bind:this={chatInputElement}
+														id="chat-input"
+														onChange={(e) => {
+															prompt = e.md;
+															command = getCommand();
+														}}
+														json={true}
+														richText={$settings?.richTextInput ?? true}
+														messageInput={true}
+														showFormattingToolbar={$settings?.showFormattingToolbar ?? false}
+														floatingMenuPlacement={'top-start'}
+														insertPromptAsRichText={$settings?.insertPromptAsRichText ?? false}
+														shiftEnter={!($settings?.ctrlEnterToSend ?? false) &&
+															!$mobile &&
+															!(
+																'ontouchstart' in window ||
+																navigator.maxTouchPoints > 0 ||
+																navigator.msMaxTouchPoints > 0
+															)}
+														placeholder={placeholder ? placeholder : $i18n.t('Send a Message')}
+														largeTextAsFile={($settings?.largeTextAsFile ?? false) && !shiftKey}
+														autocomplete={$config?.features?.enable_autocomplete_generation &&
+															($settings?.promptAutocomplete ?? false)}
+														generateAutoCompletion={async (text) => {
+															if (selectedModelIds.length === 0 || !selectedModelIds.at(0)) {
+																toast.error($i18n.t('Please select a model first.'));
 															}
 
-															stream = null;
+															const res = await generateAutoCompletion(
+																localStorage.token,
+																selectedModelIds.at(0),
+																text,
+																history?.currentId
+																	? createMessagesList(history, history.currentId)
+																	: null
+															).catch((error) => {
+																console.log(error);
 
-															if ($settings.audio?.tts?.engine === 'browser-kokoro') {
-																// If the user has not initialized the TTS worker, initialize it
-																if (!$TTSWorker) {
-																	await TTSWorker.set(
-																		new KokoroWorker({
-																			dtype: $settings.audio?.tts?.engineConfig?.dtype ?? 'fp32'
-																		})
-																	);
+																return null;
+															});
 
-																	await $TTSWorker.init();
+															console.log(res);
+															return res;
+														}}
+														{suggestions}
+														oncompositionstart={() => (isComposing = true)}
+														oncompositionend={(e) => {
+															compositionEndedAt = e.timeStamp;
+															isComposing = false;
+														}}
+														on:keydown={async (e) => {
+															e = e.detail.event;
+
+															const isCtrlPressed = e.ctrlKey || e.metaKey; // metaKey is for Cmd key on Mac
+															const suggestionsContainerElement =
+																document.getElementById('suggestions-container');
+
+															if (e.key === 'Escape') {
+																stopResponse();
+															}
+
+															if (prompt === '' && e.key == 'ArrowUp') {
+																e.preventDefault();
+
+																const userMessageElement = [
+																	...document.getElementsByClassName('user-message')
+																]?.at(-1);
+
+																if (userMessageElement) {
+																	userMessageElement.scrollIntoView({ block: 'center' });
+																	const editButton = [
+																		...document.getElementsByClassName('edit-user-message-button')
+																	]?.at(-1);
+
+																	editButton?.click();
 																}
 															}
 
-															showCallOverlay.set(true);
-															showControls.set(true);
-														} catch (err) {
-															// If the user denies the permission or an error occurs, show an error message
-															toast.error(
-																$i18n.t('Permission denied when accessing media devices')
-															);
-														}
-													}}
-													aria-label={$i18n.t('Voice mode')}
-												>
-													<Voice className="size-5" strokeWidth="2.5" />
-												</button>
-											</Tooltip>
+															if (!suggestionsContainerElement) {
+																if (
+																	!$mobile ||
+																	!(
+																		'ontouchstart' in window ||
+																		navigator.maxTouchPoints > 0 ||
+																		navigator.msMaxTouchPoints > 0
+																	)
+																) {
+																	if (inOrNearComposition(e)) {
+																		return;
+																	}
+
+																	// Uses keyCode '13' for Enter key for chinese/japanese keyboards.
+																	//
+																	// Depending on the user's settings, it will send the message
+																	// either when Enter is pressed or when Ctrl+Enter is pressed.
+																	const enterPressed =
+																		($settings?.ctrlEnterToSend ?? false)
+																			? (e.key === 'Enter' || e.keyCode === 13) && isCtrlPressed
+																			: (e.key === 'Enter' || e.keyCode === 13) && !e.shiftKey;
+
+																	if (enterPressed) {
+																		e.preventDefault();
+																		if (prompt !== '' || files.length > 0) {
+																			dispatch('submit', prompt);
+																		}
+																	}
+																}
+															}
+
+															if (e.key === 'Escape') {
+																console.log('Escape');
+																atSelectedModel = undefined;
+																selectedToolIds = [];
+																selectedFilterIds = [];
+
+																webSearchEnabled = false;
+																imageGenerationEnabled = false;
+																codeInterpreterEnabled = false;
+															}
+														}}
+														on:paste={async (e) => {
+															e = e.detail.event;
+															console.log(e);
+
+															const clipboardData = e.clipboardData || window.clipboardData;
+
+															if (clipboardData && clipboardData.items) {
+																for (const item of clipboardData.items) {
+																	if (item.type.indexOf('image') !== -1) {
+																		const blob = item.getAsFile();
+																		const reader = new FileReader();
+
+																		reader.onload = function (e) {
+																			files = [
+																				...files,
+																				{
+																					type: 'image',
+																					url: `${e.target.result}`
+																				}
+																			];
+																		};
+
+																		reader.readAsDataURL(blob);
+																	} else if (item?.kind === 'file') {
+																		const file = item.getAsFile();
+																		if (file) {
+																			const _files = [file];
+																			await inputFilesHandler(_files);
+																			e.preventDefault();
+																		}
+																	} else if (item.type === 'text/plain') {
+																		if (($settings?.largeTextAsFile ?? false) && !shiftKey) {
+																			const text = clipboardData.getData('text/plain');
+
+																			if (text.length > PASTED_TEXT_CHARACTER_LIMIT) {
+																				e.preventDefault();
+																				const blob = new Blob([text], { type: 'text/plain' });
+																				const file = new File(
+																					[blob],
+																					`Pasted_Text_${Date.now()}.txt`,
+																					{
+																						type: 'text/plain'
+																					}
+																				);
+
+																				await uploadFileHandler(file, true);
+																			}
+																		}
+																	}
+																}
+															}
+														}}
+													/>
+												{/key}
+											{/key}
+										{/if}
 										</div>
-									{:else}
-										<div class=" flex items-center">
-											<Tooltip content={$i18n.t('Send message')}>
-												<button
-													id="send-message-button"
-													class="{!(prompt === '' && files.length === 0)
-														? 'bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 '
-														: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'} transition rounded-full p-1.5 self-center"
-													type="submit"
-													disabled={prompt === '' && files.length === 0}
+									</div>
+								</div>
+
+								<!-- Right: Send button (always visible) -->
+								<div class="flex-none">
+									<Tooltip content={$i18n.t('Send message')}>
+										<!-- svelte-ignore a11y_consider_explicit_label -->
+										<button
+											id="send-message-button"
+											class="w-12 h-12 rounded-full shadow-[0px_3.6px_18px_rgba(0,0,0,0.1)] flex justify-center items-center transition {!(
+												prompt === '' && files.length === 0
+											)
+												? 'bg-[#076EF4] hover:bg-[#0561d9] text-white'
+												: 'bg-gray-300 dark:bg-gray-700 text-white cursor-not-allowed'}"
+											type="submit"
+											disabled={prompt === '' && files.length === 0}
+										>
+											<svg
+												width="40"
+												height="40"
+												viewBox="0 0 40 40"
+												fill="none"
+												xmlns="http://www.w3.org/2000/svg"
+											>
+												<mask
+													id="mask0_191_1153"
+													style="mask-type:alpha"
+													maskUnits="userSpaceOnUse"
+													x="0"
+													y="0"
+													width="40"
+													height="40"
 												>
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 16 16"
-														fill="currentColor"
-														class="size-5"
-													>
-														<path
-															fill-rule="evenodd"
-															d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z"
-															clip-rule="evenodd"
-														/>
-													</svg>
-												</button>
-											</Tooltip>
-										</div>
-									{/if}
+													<rect width="40" height="40" fill="#D9D9D9" />
+												</mask>
+												<g mask="url(#mask0_191_1153)">
+													<path
+														d="M31.1657 11.0015L22.2211 32.9259C22.0814 33.2572 21.843 33.4598 21.506 33.5337C21.1687 33.6077 20.8822 33.5268 20.6465 33.2911L7.59483 20.2395C7.35918 20.0038 7.27832 19.7173 7.35224 19.38C7.42616 19.0429 7.62477 18.8006 7.94807 18.6529L29.8845 9.72027C30.2732 9.56621 30.6218 9.6434 30.9303 9.95185C31.2389 10.2605 31.3174 10.6103 31.1657 11.0015ZM20.904 30.7946L28.4356 12.4384L10.0076 19.8982L14.0309 23.9215L21.2033 19.6707L16.9046 26.7952L20.904 30.7946Z"
+														fill="#FDFEFE"
+													/>
+												</g>
+											</svg>
+										</button>
+									</Tooltip>
 								</div>
 							</div>
-						</div>
 
-						{#if $config?.license_metadata?.input_footer}
-							<div class=" text-xs text-gray-500 text-center line-clamp-1 marked">
-								{@html DOMPurify.sanitize(marked($config?.license_metadata?.input_footer))}
-							</div>
-						{:else}
-							<div class="mb-1" />
-						{/if}
+							{#if $config?.license_metadata?.input_footer}
+								<div class=" text-xs text-gray-500 text-center line-clamp-1 marked">
+									{@html DOMPurify.sanitize(marked($config?.license_metadata?.input_footer))}
+								</div>
+							{:else}
+								<div class="mb-1" />
+							{/if}
+						</div>
 					</form>
 				</div>
 			</div>

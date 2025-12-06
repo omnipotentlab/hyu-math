@@ -161,16 +161,16 @@
 	let params = {};
 
 	// Chat Toolbar
-	let toolbarTitle = '제 10장, 벡터 그리고 어쩌구';
-	let toolbarSubtitle = '그런 내용이 있다.';
+	let toolbarTitle = '제10장. 벡터 적분법, 적분 정리 (Vector Integral Calculus. Integral Theorems)';
+	let toolbarSubtitle = '벡터장을 다양한 경로와 곡면에 대해 적분하고, 미분과 적분을 연결하는 중요한 정리들을 이해합니다.';
 	let toolbarProficiencyLevel = 'intermediate';
 	let toolbarResponseStyle = 'question_guidance';
 
 	// Update toolbar data when chat changes
 	$: if (chat && !$temporaryChatEnabled) {
 		// Chat object에서 toolbar 데이터를 읽어옴 (현재는 더미 값 사용)
-		toolbarTitle = chat.title || '제 10장, 벡터 그리고 어쩌구';
-		toolbarSubtitle = chat.subtitle || '그런 내용이 있다.';
+		toolbarTitle = chat.chapter || '제10장. 벡터 적분법, 적분 정리 (Vector Integral Calculus. Integral Theorems)';
+		toolbarSubtitle = chat.subtitle || '벡터장을 다양한 경로와 곡면에 대해 적분하고, 미분과 적분을 연결하는 중요한 정리들을 이해합니다.';
 		toolbarProficiencyLevel = chat.proficiency_level || 'intermediate';
 		toolbarResponseStyle = chat.response_style || 'question_guidance';
 	}
@@ -1945,11 +1945,14 @@
 				stream: stream,
 				model: model.id,
 				messages: messages,
+				hyu:{
+				proficiency_level: toolbarProficiencyLevel,
+					response_style: toolbarResponseStyle,
+				},
 				params: {
 					...$settings?.params,
 					...params,
-					// proficiency_level: toolbarProficiencyLevel,
-					// response_style: toolbarResponseStyle,
+					
 					stop:
 						(params?.stop ?? $settings?.params?.stop ?? undefined)
 							? (params?.stop.split(',').map((token) => token.trim()) ?? $settings.params.stop).map(
@@ -2609,6 +2612,8 @@
 							<div class=" pb-2 z-10">
 								<MessageInput
 									bind:this={messageInput}
+									bind:proficiencyLevel={toolbarProficiencyLevel}
+									bind:responseStyle={toolbarResponseStyle}
 									{history}
 									{taskIds}
 									{selectedModels}

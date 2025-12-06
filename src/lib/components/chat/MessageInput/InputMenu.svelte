@@ -130,7 +130,7 @@
 
 	<div slot="content">
 		<DropdownMenu.Content
-			class="w-full max-w-70 rounded-2xl px-1 py-1  border border-gray-100  dark:border-gray-800 z-50 bg-white dark:bg-gray-850 dark:text-white shadow-lg max-h-72 overflow-y-auto overflow-x-hidden scrollbar-thin transition"
+			class="w-full max-w-70 flex flex-col items-start p-5 gap-2 bg-[rgba(113,122,143,0.3)] shadow-[4px_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[20px] rounded-[20px] rounded-bl-[4px] z-50 text-white text-xs border-0 max-h-72 overflow-y-auto overflow-x-hidden scrollbar-thin transition"
 			sideOffset={4}
 			alignOffset={-6}
 			side="bottom"
@@ -148,7 +148,7 @@
 						className="w-full"
 					>
 						<DropdownMenu.Item
-							class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl {!fileUploadEnabled
+							class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 								? 'opacity-50'
 								: ''}"
 							on:click={() => {
@@ -172,7 +172,7 @@
 						className="w-full"
 					>
 						<DropdownMenu.Item
-							class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50  rounded-xl {!fileUploadEnabled
+							class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 								? 'opacity-50'
 								: ''}"
 							on:click={() => {
@@ -203,7 +203,7 @@
 						className="w-full"
 					>
 						<DropdownMenu.Item
-							class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl {!fileUploadEnabled
+							class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 								? 'opacity-50'
 								: ''}"
 							on:click={() => {
@@ -227,7 +227,7 @@
 							className="w-full"
 						>
 							<button
-								class="flex gap-2 w-full items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl {!fileUploadEnabled
+								class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 									? 'opacity-50'
 									: ''}"
 								on:click={() => {
@@ -241,7 +241,7 @@
 										{$i18n.t('Attach Notes')}
 									</div>
 
-									<div class="text-gray-500">
+									<div class="text-gray-400">
 										<ChevronRight />
 									</div>
 								</div>
@@ -259,7 +259,7 @@
 							className="w-full"
 						>
 							<button
-								class="flex gap-2 w-full items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl {!fileUploadEnabled
+								class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 									? 'opacity-50'
 									: ''}"
 								on:click={() => {
@@ -273,7 +273,7 @@
 										{$i18n.t('Attach Knowledge')}
 									</div>
 
-									<div class="text-gray-500">
+									<div class="text-gray-400">
 										<ChevronRight />
 									</div>
 								</div>
@@ -291,7 +291,7 @@
 							className="w-full"
 						>
 							<button
-								class="flex gap-2 w-full items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl {!fileUploadEnabled
+								class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 									? 'opacity-50'
 									: ''}"
 								on:click={() => {
@@ -305,7 +305,7 @@
 										{$i18n.t('Reference Chats')}
 									</div>
 
-									<div class="text-gray-500">
+									<div class="text-gray-400">
 										<ChevronRight />
 									</div>
 								</div>
@@ -316,7 +316,7 @@
 					{#if fileUploadEnabled}
 						{#if $config?.features?.enable_google_drive_integration}
 							<DropdownMenu.Item
-								class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl"
+								class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 								on:click={() => {
 									uploadGoogleDriveHandler();
 								}}
@@ -353,7 +353,7 @@
 
 						{#if $config?.features?.enable_onedrive_integration && ($config?.features?.enable_onedrive_personal || $config?.features?.enable_onedrive_business)}
 							<button
-								class="flex gap-2 w-full items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl {!fileUploadEnabled
+								class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] {!fileUploadEnabled
 									? 'opacity-50'
 									: ''}"
 								on:click={() => {
@@ -451,7 +451,7 @@
 										{$i18n.t('Microsoft OneDrive')}
 									</div>
 
-									<div class="text-gray-500">
+									<div class="text-gray-400">
 										<ChevronRight />
 									</div>
 								</div>
@@ -462,7 +462,7 @@
 			{:else if tab === 'knowledge'}
 				<div in:fly={{ x: 20, duration: 150 }}>
 					<button
-						class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+						class="flex w-full justify-between items-center p-1 gap-1 h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 						on:click={() => {
 							tab = '';
 						}}
@@ -481,7 +481,7 @@
 			{:else if tab === 'notes'}
 				<div in:fly={{ x: 20, duration: 150 }}>
 					<button
-						class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+						class="flex w-full justify-between items-center p-1 gap-1 h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 						on:click={() => {
 							tab = '';
 						}}
@@ -500,7 +500,7 @@
 			{:else if tab === 'chats'}
 				<div in:fly={{ x: 20, duration: 150 }}>
 					<button
-						class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+						class="flex w-full justify-between items-center p-1 gap-1 h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 						on:click={() => {
 							tab = '';
 						}}
@@ -519,7 +519,7 @@
 			{:else if tab === 'microsoft_onedrive'}
 				<div in:fly={{ x: 20, duration: 150 }}>
 					<button
-						class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+						class="flex w-full justify-between items-center p-1 gap-1 h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px]"
 						on:click={() => {
 							tab = '';
 						}}
@@ -535,7 +535,7 @@
 
 					{#if $config?.features?.enable_onedrive_personal}
 						<DropdownMenu.Item
-							class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl text-left"
+							class="flex flex-row items-center p-1 gap-1 w-full h-7 rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] text-left"
 							on:click={() => {
 								uploadOneDriveHandler('personal');
 							}}
@@ -548,7 +548,7 @@
 
 					{#if $config?.features?.enable_onedrive_business}
 						<DropdownMenu.Item
-							class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl text-left"
+							class="flex flex-row items-center p-1 gap-1 w-full h-auto rounded-lg hover:bg-white/10 transition cursor-pointer text-xs leading-[18px] text-left"
 							on:click={() => {
 								uploadOneDriveHandler('organizations');
 							}}
@@ -557,7 +557,7 @@
 								<div class="line-clamp-1">
 									{$i18n.t('Microsoft OneDrive (work/school)')}
 								</div>
-								<div class="text-xs text-gray-500">{$i18n.t('Includes SharePoint')}</div>
+								<div class="text-xs text-gray-400">{$i18n.t('Includes SharePoint')}</div>
 							</div>
 						</DropdownMenu.Item>
 					{/if}
