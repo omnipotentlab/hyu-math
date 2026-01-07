@@ -315,3 +315,5 @@ temp/*
 deploy.sh
 *.tar.gz
 *.swp
+
+.popilot/*
